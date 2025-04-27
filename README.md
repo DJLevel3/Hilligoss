@@ -8,6 +8,13 @@ Now with full cross-platform (Windows, MacOS, Linux) support!
 	(should be added to compiler's package and can be run with terminal or using IDE).
 4. CMake at least version 3.10.
 
+### Getting OpenCV:
+- Windows (MinGW): `pacman -S mingw-w64-x86_64-opencv`
+- Linux (Debian-like): `sudo apt install libopencv-dev`
+- Linux (Arch-like): `pacman -S opencv`
+- MacOS: `brew install opencv`
+- Windows (MSVC, not recommended due to being unbearably slow): Download package from https://github.com/opencv/opencv/releases/latest
+
 ### Building:
 Note: built openCV library must be already installed and accessible to CMake
 ```
