@@ -35,14 +35,14 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
     pixels.reserve(targetCount);
 
     for (double i = 0; i < 256; i++) {
-        lookup[(int)i] = sin(3.1415926535 / 2 * (white - i) / white) * white;
+        lookup[(int)i] = pow(i / white, 2.5) * white;
     }
 
     std::vector<int> candidates(PIX_CT * PIX_CT);
 	for (int i = 0; i < candidates.size(); i++) candidates[i] = i;
     std::shuffle(candidates.begin(), candidates.end(),g);
 
-    double greed = 0.9;
+    double greed = 0.7;
 
     int index = 0;
     std::vector<int> erase;
@@ -55,7 +55,7 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
             quickDelete(candidates, index);
             index--;
         }
-        else if (v < z) {
+        else if (v > z) {
             pixelCount++;
             pixels.push_back(x);
             pixels.push_back(y);
@@ -74,12 +74,12 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
             }
             break;
         }
-        index++;
+        index+= rand() % PIX_CT;
         if (index >= candidates.size()) {
             index = 0;
             std::shuffle(candidates.begin(), candidates.end(),g);
-            greed = greed * 0.95;
-            if (greed < 0.64) break; // many loops through
+            greed = greed * 1.01;
+            if (greed > 1.5) break; // many loops through
         }
     }
     pixels.resize(targetCount, PIX_CT / 2);
