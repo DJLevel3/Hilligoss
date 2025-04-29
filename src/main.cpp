@@ -130,6 +130,7 @@ int main(int argc, char*argv[]) {
     int black_level = 30;
     int white_level = 230;
     int jump_timer = 100;
+	double fps = -1;
 
     // Loop over command-line args
     // (Actually I usually use an ordinary integer loop variable and compare
@@ -163,6 +164,9 @@ int main(int argc, char*argv[]) {
         else if (*i == "-j" || *i == "-jump") {
             jump_timer = stoi(*++i);
         }
+		else if (*i == "-f" || *i == "-framerate" || *i == "-frequency") {
+			fps = stod(*++i);
+		}
     }
 
     cv::String inFile(infname);
@@ -181,7 +185,7 @@ int main(int argc, char*argv[]) {
     std::vector<unsigned char> frame(PIX_CT * PIX_CT);
     std::vector<int16_t> pcm;
 
-    double fps = capture.get(cv::CAP_PROP_FPS);
+    if (fps == -1) fps = capture.get(cv::CAP_PROP_FPS);
     double delta = 1000.0 / fps;
     int targetPointCount = (int)(sampleRate / fps);
 
