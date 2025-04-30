@@ -85,7 +85,6 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
             if (greed > 1.5) break; // many loops through
         }
     }
-    pixels.resize(targetCount, PIX_CT / 2);
     return pixels;
 }
 
@@ -102,8 +101,9 @@ void debug(std::string s) {
     std::cout << s << std::endl;
 }
 
-std::vector<int16_t> determinePath(std::vector<int> pixels, int targetCount, int jumpPeriod, int searchDistance, std::mt19937& g)
+std::vector<int16_t> determinePath(std::vector<int> pixelsOriginal, int targetCount, int jumpPeriod, int searchDistance, std::mt19937& g)
 {
+    std::vector<int> pixels = pixelsOriginal;
     std::vector<int16_t> outputFile;
 
     std::vector<long> path;
@@ -125,14 +125,13 @@ std::vector<int16_t> determinePath(std::vector<int> pixels, int targetCount, int
         nPix++;
 	}
 
-    while (pathLength < targetCount && pixels.size() > 0)
+    while (pathLength < targetCount && nPix > 0)
     {
         visited.clear();
         std::vector<int> pixelsTemp;
 
         pixels.clear();
         pixels.reserve(nPix);
-
         for (int x = 0; x < PIX_CT; x++) {
             for (int y = 0; y < PIX_CT; y++) {
                 if (map[y * PIX_CT + x] == true) {
@@ -158,15 +157,13 @@ std::vector<int16_t> determinePath(std::vector<int> pixels, int targetCount, int
 
         int startPoint = -1;
         int temp = -1;
-        bool fucked = pixels.size() < 2;
 
-        if (fucked) {
-            debug("Something went very wrong, stopping early to prevent a crash!");
+        if (pixels.size() < 2) {
             break;
         }
 
         startPoint = rand() % (pixels.size() / 2);
-
+        
         path.push_back(pixels[startPoint*2]);
         path.push_back(pixels[startPoint*2+1]);
         map[pixels[startPoint * 2 + 1] * PIX_CT + pixels[startPoint * 2]] = false;
@@ -236,23 +233,18 @@ std::vector<int16_t> determinePath(std::vector<int> pixels, int targetCount, int
                 break; // Break the loop if no unvisited pixels are found within distance
             }
         }
-        //std::cout << path[path.size() - 2] << " " << path[path.size() - 1] << std::endl;
-
-        //std::sort(visited.rbegin(), visited.rend());
-        /*for (int a : visited) {
-            pixels.erase(pixels.begin() + (a * 2 + 1));
-            pixels.erase(pixels.begin() + (a * 2));
-        }*/
-
-        if (nPix == 0)
-        {
-            break;
-        }
     }
 
     int i;
     int pixelsWritten = 0;
     int16_t xShort, yShort;
+    int ratio = 1 + (targetCount / pathLength);
+
+    if (path.size() == 0) {
+        path.push_back(PIX_CT / 2);
+        path.push_back(PIX_CT / 2);
+    }
+
     for (i = 0; i < path.size() / 2; i++)
     {
         xShort = (int16_t)(path[i*2] % PIX_CT) * (65536 / PIX_CT) - 32767;
@@ -260,8 +252,14 @@ std::vector<int16_t> determinePath(std::vector<int> pixels, int targetCount, int
 
         outputFile.push_back(xShort);
         outputFile.push_back(yShort);
-
         pixelsWritten++;
+
+        for (int counter = 0; counter < ratio && pathLength < targetCount; counter++) {
+            outputFile.push_back(xShort);
+            outputFile.push_back(yShort);
+            pixelsWritten++;
+            pathLength++;
+        }
     }
 
     i = 0;
