@@ -146,13 +146,11 @@ int main(int argc, char*argv[]) {
 	if (args.size() < 2 || args[0] != "-i") args.push_back("-h");
     for (auto i = args.begin(); i != args.end(); ++i) {
         if (*i == "-h" || *i == "--help") {
-            std::cout << "Syntax: Hilligoss-OpenCV -i <infile>\n Options: -o <outfile>" <<
+            std::cout << "Syntax: Hilligoss-OpenCV -i <input filename>\n Options: -o <output filename>" <<
                 "\n          -b <black level>\n          -w <white level>\n          -j <jump spacing>" <<
-                "\n          -r <sample rate>\n          -t <thread count>" << std::endl;
+                "\n          -r <sample rate>\n          -t <thread count>\n          -f <framerate>" <<
+                "\n          -d <search distance>\n          -p (enable preview)\n          -s (sync mode)" << std::endl;
             return 0;
-        }
-        else if (*i == "-s" || *i == "-sync") {
-            syncCount = 2;
         }
         else if (*i == "-i" || *i == "-input") {
             infname = *++i;
@@ -166,14 +164,14 @@ int main(int argc, char*argv[]) {
         else if (*i == "-w" || *i == "-white") {
             white_level = stoi(*++i);
         }
+        else if (*i == "-j" || *i == "-jump") {
+            jump_timer = stoi(*++i);
+        }
         else if (*i == "-r" || *i == "-rate") {
             sampleRate = stod(*++i);
         }
         else if (*i == "-t" || *i == "-threads") {
             BATCH_SIZE = stoi(*++i);
-        }
-        else if (*i == "-j" || *i == "-jump") {
-            jump_timer = stoi(*++i);
         }
 		else if (*i == "-f" || *i == "-framerate" || *i == "-frequency") {
 			fps = stod(*++i);
@@ -184,6 +182,9 @@ int main(int argc, char*argv[]) {
         }
         else if (*i == "-p" || *i == "-preview") {
             showPreview = true;
+        }
+        else if (*i == "-s" || *i == "-sync") {
+            syncCount = 2;
         }
     }
 
