@@ -10,18 +10,12 @@ void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& des
 #endif
     
     std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, rng);
- 
-#ifdef TIMEIT
-    double timeToExecute = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - now).count();
-    now = std::chrono::high_resolution_clock::now();
-#endif
 
     std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, rng);
 
 #ifdef TIMEIT
-    std::cout << "choosePixels: " << timeToExecute << " ";
-    timeToExecute = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - now).count();
-    std::cout << "determinePath: " << timeToExecute << std::endl << std::endl;
+    double timeToExecute = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - now).count();
+    std::cout << "thread time: " << timeToExecute << std::endl << std::endl;
 #endif
     
     destination.insert(destination.end(), samples.begin(), samples.end());

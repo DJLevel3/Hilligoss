@@ -4,6 +4,11 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/imgproc.hpp>
 
+void monitor(bool* flag) {
+    std::string str;
+    if (fgetc(stdin) != EOF) *flag = true;
+    *flag = true;
+}
 
 void show(const cv::Mat &img){
 	cv::imshow("input",img);
@@ -132,6 +137,7 @@ int main(int argc, char*argv[]) {
     int jump_timer = 100;
 	double fps = -1;
     int searchDistance = 30;
+    bool showPreview = false;
 
     // Loop over command-line args
     // (Actually I usually use an ordinary integer loop variable and compare
@@ -172,6 +178,9 @@ int main(int argc, char*argv[]) {
             searchDistance = stoi(*++i);
             if (searchDistance < 1) searchDistance = PIX_CT;
         }
+        else if (*i == "-p" || *i == "-preview") {
+            showPreview = true;
+        }
     }
 
     cv::String inFile(infname);
@@ -199,8 +208,10 @@ int main(int argc, char*argv[]) {
     std::vector<std::thread> threads;
     std::vector<std::vector<int16_t>> results(BATCH_SIZE);
 
-	int frameNumber = 0;
     bool done = false;
+    std::thread monitorThread(monitor, &done);
+
+	int frameNumber = 0;
     while (done == false) {
         if (BATCH_SIZE < 1) {
             BATCH_SIZE = 1;
@@ -210,7 +221,7 @@ int main(int argc, char*argv[]) {
         for (int t = 0; t < BATCH_SIZE; t++) {
             results[t].clear();
             capture >> inFrame;
-            if (inFrame.empty() || cv::waitKey(1) == 27) {
+            if (inFrame.empty()) {
                 done = true;
                 break;
             }
@@ -220,7 +231,7 @@ int main(int argc, char*argv[]) {
             resizeKeepAspectRatio(procFrame, inFrame, cv::Size(PIX_CT, PIX_CT), {});
 
             // frame is now PIX_CTxPIX_CT, 8-bit grayscale
-            if (t == 0) {
+            if (t == 0 && showPreview) {
 				show(inFrame);
 			}
 
@@ -253,5 +264,6 @@ int main(int argc, char*argv[]) {
     std::cout << "Execution took " << (duration) << " seconds to process " << frameNumber << " frames." << std::endl;
     std::cout << "That's " << frameNumber / duration << " frames per second," << std::endl;
     std::cout << "or a speed factor of " << frameNumber / duration / fps << " (where >=1 is realtime)." << std::endl;
-    cv::waitKey(1000);
+    std::cout << "Press enter to finish if you haven't already!" << std::endl;
+    monitorThread.join();
 }
