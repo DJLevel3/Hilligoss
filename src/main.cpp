@@ -131,6 +131,7 @@ int main(int argc, char*argv[]) {
     int white_level = 230;
     int jump_timer = 100;
 	double fps = -1;
+    int searchDistance = 30;
 
     // Loop over command-line args
     // (Actually I usually use an ordinary integer loop variable and compare
@@ -167,6 +168,10 @@ int main(int argc, char*argv[]) {
 		else if (*i == "-f" || *i == "-framerate" || *i == "-frequency") {
 			fps = stod(*++i);
 		}
+        else if (*i == "-d" || *i == "-distance") {
+            searchDistance = stoi(*++i);
+            if (searchDistance < 1) searchDistance = PIX_CT;
+        }
     }
 
     cv::String inFile(infname);
@@ -200,7 +205,7 @@ int main(int argc, char*argv[]) {
         if (BATCH_SIZE < 1) {
             BATCH_SIZE = 1;
         }
-        if (BATCH_SIZE == 1) std::cout << "Running frame " << frameNumber << std::endl;
+        if (BATCH_SIZE == 1) std::cout << "Running frame " << frameNumber + 1 << std::endl;
         else std::cout << "Running frames " << frameNumber + 1 << " through " << frameNumber + BATCH_SIZE << std::endl;
         for (int t = 0; t < BATCH_SIZE; t++) {
             results[t].clear();
@@ -225,7 +230,7 @@ int main(int argc, char*argv[]) {
             //frame = std::vector<uchar>(inFrame.begin<uchar>(), inFrame.end<uchar>());
 
             // do the hilligoss stuff
-            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer));
+            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance));
 
 			frameNumber++;
         }
@@ -244,7 +249,9 @@ int main(int argc, char*argv[]) {
 
     outFile.flush();
     outFile.close();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - now);
-    std::cout << "Execution took " << (duration.count() * 0.001) << " seconds." << std::endl;
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - now).count() * 0.001;
+    std::cout << "Execution took " << (duration) << " seconds to process " << frameNumber << " frames." << std::endl;
+    std::cout << "That's " << frameNumber / duration << " frames per second," << std::endl;
+    std::cout << "or a speed factor of " << frameNumber / duration / fps << " (where >=1 is realtime)." << std::endl;
     cv::waitKey(1000);
 }
