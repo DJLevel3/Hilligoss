@@ -138,6 +138,7 @@ int main(int argc, char*argv[]) {
 	double fps = -1;
     int searchDistance = 30;
     bool showPreview = false;
+    int syncCount = 1;
 
     // Loop over command-line args
     // (Actually I usually use an ordinary integer loop variable and compare
@@ -149,6 +150,9 @@ int main(int argc, char*argv[]) {
                 "\n          -b <black level>\n          -w <white level>\n          -j <jump spacing>" <<
                 "\n          -r <sample rate>\n          -t <thread count>" << std::endl;
             return 0;
+        }
+        else if (*i == "-s" || *i == "-sync") {
+            syncCount = 2;
         }
         else if (*i == "-i" || *i == "-input") {
             infname = *++i;
@@ -201,7 +205,7 @@ int main(int argc, char*argv[]) {
 
     if (fps == -1) fps = capture.get(cv::CAP_PROP_FPS);
     double delta = 1000.0 / fps;
-    int targetPointCount = (int)(sampleRate / fps);
+    int targetPointCount = (int)(sampleRate / fps / syncCount);
 
     srand((unsigned)time(NULL));
 
@@ -249,7 +253,9 @@ int main(int argc, char*argv[]) {
             t.join();
         }
         for (int t = 0; t < BATCH_SIZE; t++) {
-            pcm.insert(pcm.end(), results[t].begin(), results[t].end());
+            for (int s = 0; s < syncCount; s++) {
+                pcm.insert(pcm.end(), results[t].begin(), results[t].end());
+            }
         }
         threads.clear();
     }
