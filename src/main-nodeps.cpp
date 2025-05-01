@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
     // Loop over command-line args
     // (Actually I usually use an ordinary integer loop variable and compare
     // args[i] instead of *i -- don't tell anyone! ;)
-    if (args.size() < 2 || args[0] != "-i") args.push_back("-h");
+    if (args.size() < 2) args.push_back("-h");
     for (auto i = args.begin(); i != args.end(); ++i) {
         if (*i == "-h" || *i == "--help") {
             std::cout << "Usage: %s -f <filename> -c <desired vectors per frame> -b <black threshold 0-255> -w <white threshold 1-255>" << std::endl;
@@ -45,20 +45,17 @@ int main(int argc, char* argv[]) {
 
     outfname = infname.substr(0, infname.size() - 4).append(".pcm");
 
-    int row = 0, col = 0, numrows = 0, numcols = 0;
+    int row = 0, col = 0, numrows = 0, numcols = 0, discard = 0;
     std::ifstream infile(infname);
     std::stringstream ss;
     std::string inputLine = "";
 
     // First line : version
     getline(infile, inputLine);
-    if (inputLine.compare("P2") != 0) {
+    if (inputLine != "P5") {
         std::cerr << "Version error!" << std::endl;
         return -1;
     }
-
-    // Second line : comment
-    getline(infile, inputLine);
 
     // Continue with a stringstream
     ss << infile.rdbuf();
@@ -68,6 +65,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "Dimension mismatch: Expected " << PIX_CT << "x" << PIX_CT << ", got " << numrows << "x" << numcols << std::endl;
         return -2;
     }
+    ss >> discard;
 
     std::vector<unsigned char> array;
     array.reserve(PIX_CT * PIX_CT);
@@ -75,8 +73,7 @@ int main(int argc, char* argv[]) {
     // Following lines : data 
     for (row = 0; row < numrows; ++row) {
         for (col = 0; col < numcols; ++col) {
-            ss >> res;
-            array.push_back(res);
+            array.push_back(ss.get());
         }
     }
     infile.close();
