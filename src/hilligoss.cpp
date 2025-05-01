@@ -234,17 +234,18 @@ std::vector<int16_t> determinePath(std::vector<int> pixelsOriginal, int targetCo
             }
         }
     }
+    if (path.size() == 0) {
+        path.push_back(PIX_CT / 2);
+        path.push_back(PIX_CT / 2);
+        pathLength++;
+    }
 
     int i;
     int pixelsWritten = 0;
     int16_t xShort, yShort;
-    int ratio = 1 + (targetCount / pathLength);
+    double ratio = targetCount / (double)pathLength;
 
-    if (path.size() == 0) {
-        path.push_back(PIX_CT / 2);
-        path.push_back(PIX_CT / 2);
-    }
-
+    double expectedProgress = 0;
     for (i = 0; i < path.size() / 2; i++)
     {
         xShort = (int16_t)(path[i*2] % PIX_CT) * (65536 / PIX_CT) - 32767;
@@ -254,7 +255,9 @@ std::vector<int16_t> determinePath(std::vector<int> pixelsOriginal, int targetCo
         outputFile.push_back(yShort);
         pixelsWritten++;
 
-        for (int counter = 0; counter < ratio && pathLength < targetCount; counter++) {
+        expectedProgress += ratio;
+
+        while (pixelsWritten < expectedProgress) {
             outputFile.push_back(xShort);
             outputFile.push_back(yShort);
             pixelsWritten++;
