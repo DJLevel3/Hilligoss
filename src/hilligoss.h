@@ -15,6 +15,7 @@
 #include <random>
 #include <fstream>
 #include <algorithm>
+#include <sstream>
 
 void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount,
     unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance);
