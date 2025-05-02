@@ -1,5 +1,11 @@
 #include "hilligoss.h"
 
+#include <vector>
+#include <string>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+
 int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv + 1, argv + argc);
     std::string infname = "input.pgm";
@@ -14,6 +20,7 @@ int main(int argc, char* argv[]) {
     bool showPreview = false;
     int syncCount = 1;
     int targetPointCount = int(sampleRate / fps);
+    double curve = 2.5;
 
     // Loop over command-line args
     // (Actually I usually use an ordinary integer loop variable and compare
@@ -79,7 +86,7 @@ int main(int argc, char* argv[]) {
     infile.close();
 
     std::vector<int16_t> pcm;
-    hilligoss(array, pcm, targetPointCount, black_level, white_level, jump_timer, searchDistance);
+    hilligoss(array, pcm, targetPointCount, black_level, white_level, jump_timer, searchDistance, curve);
 
     std::ofstream outFile = std::ofstream(outfname.c_str(), std::ios_base::binary);
 

@@ -2,14 +2,14 @@
 
 //#define TIMEIT
 
-void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance) {
+void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double curve) {
     std::random_device rd;
     std::mt19937 rng(rd());
 #ifdef TIMEIT
 	auto now = std::chrono::high_resolution_clock::now();
 #endif
     
-    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, rng);
+    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, rng, curve);
 
     std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, rng);
 
@@ -28,7 +28,7 @@ void quickDelete(std::vector<T>& vec, int idx)
     vec.pop_back();
 }
 
-std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, std::mt19937& g) {
+std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, std::mt19937& g, double curve) {
     int pixelCount = 0;
     double lookup[256];
     int x, y;
@@ -37,7 +37,7 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
     pixels.reserve(targetCount);
 
     for (double i = 0; i < 256; i++) {
-        lookup[(int)i] = pow(i / white, 2.5) * white;
+        lookup[(int)i] = pow(i / white, curve) * white;
     }
 
     std::vector<int> candidates(PIX_CT * PIX_CT);
@@ -77,11 +77,10 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
             }
             break;
         }
-        index+= rand() % PIX_CT;
+        index += rand() % PIX_CT;
         if (index >= candidates.size()) {
             index = rand() % PIX_CT;
-            //std::shuffle(candidates.begin(), candidates.end(),g);
-            greed = greed * 1.01;
+            greed = greed * 1.05;
             if (greed > 1.5) break; // many loops through
         }
     }
@@ -176,32 +175,6 @@ std::vector<int16_t> determinePath(std::vector<int> pixelsOriginal, int targetCo
             long closestIndex = -1;
             double minDistance = DBL_MAX;
 			
-			// slow! optimize this!
-			/*
-            for (int i = 0; i < (pixels.size() / 2); i++)
-            {
-                if (std::find(visited.begin(), visited.end(), i) == visited.end())
-                {
-                    double dist = sqrt(pow(path[(pathLength-1)*2] - pixels[i*2], 2) + pow(path[(pathLength - 1)*2+1] - pixels[i*2+1], 2));
-                    if (dist < minDistance)
-                    {
-                        minDistance = dist;
-                        closestIndex = i;
-                    }
-                }
-            }
-            if (closestIndex != -1) // Add that fucker to the path
-            {
-                path[pathLength*2] = pixels[closestIndex*2];
-                path[pathLength*2+1] = pixels[closestIndex*2+1];
-                visited.push_back(closestIndex);
-                pathLength++;
-            }
-            else
-            {
-                break; // Break the loop if no unvisited pixels are found
-            }*/
-			
             // search within searchDistance
             for (long x = std::max(0l, path[path.size() - 2] - searchDistance);x < std::min((long)(PIX_CT), path[path.size() - 2] + searchDistance); x++) {
                 for (long y = std::max(0l, path[path.size() - 1] - searchDistance); y < std::min((long)(PIX_CT), path[path.size() - 1] + searchDistance); y++) {
@@ -217,20 +190,17 @@ std::vector<int16_t> determinePath(std::vector<int> pixelsOriginal, int targetCo
                 }
             }
 
-            if (closestIndex >= 0) // Add that fucker to the path
+            if (closestIndex >= 0) // Add point to the path if found
             {
-                //std::cout << "l " << path.size() << std::endl;
                 path.push_back((closestIndex % PIX_CT + PIX_CT) % PIX_CT);
                 path.push_back((long(closestIndex / PIX_CT) % PIX_CT + PIX_CT) % PIX_CT);
                 map[closestIndex] = false;
                 nPix--;
-                //std::cout << minDistance << std::endl;
-                //std::cout << closestIndex << " " << path[path.size() - 2] << " " << path[path.size() - 1] << std::endl; // todo
                 pathLength++;
             }
-            else
+            else // Break the loop if no unvisited pixels are found within distance
             {
-                break; // Break the loop if no unvisited pixels are found within distance
+                break; 
             }
         }
     }

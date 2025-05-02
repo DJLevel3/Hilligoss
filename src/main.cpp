@@ -1,8 +1,16 @@
 #include "hilligoss.h"
+
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
 #include <opencv2/imgproc.hpp>
+
+#include <vector>
+#include <string>
+#include <chrono>
+#include <thread>
+#include <fstream>
+#include <iostream>
 
 void monitor(bool* flag) {
     std::string str;
@@ -139,6 +147,7 @@ int main(int argc, char*argv[]) {
     int searchDistance = 30;
     bool showPreview = false;
     int syncCount = 1;
+    double curve = 2.5;
 
     // Loop over command-line args
     // (Actually I usually use an ordinary integer loop variable and compare
@@ -246,7 +255,7 @@ int main(int argc, char*argv[]) {
             //frame = std::vector<uchar>(inFrame.begin<uchar>(), inFrame.end<uchar>());
 
             // do the hilligoss stuff
-            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance));
+            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, curve));
 
 			frameNumber++;
         }
