@@ -147,6 +147,7 @@ int main(int argc, char*argv[]) {
     bool showPreview = false;
     int syncCount = 1;
     double curve = 2.5;
+    int frameLoop = 1;
 
     // Loop over command-line args
     // (Actually I usually use an ordinary integer loop variable and compare
@@ -197,6 +198,9 @@ int main(int argc, char*argv[]) {
         else if (*i == "-c" || *i == "-curve") {
             curve = std::pow(2.0, std::min(2.0, std::max(-2.0, stod(*++i))));
         }
+        else if (*i == "-fl" || *i == "-frameloop") {
+            frameLoop = std::max(1, stoi(*++i));
+        }
     }
 
     cv::String inFile(infname);
@@ -228,6 +232,7 @@ int main(int argc, char*argv[]) {
     std::thread monitorThread(monitor, &done);
 
 	int frameNumber = 0;
+    int counter = 0;
     while (done == false) {
         if (BATCH_SIZE < 1) {
             BATCH_SIZE = 1;
@@ -236,7 +241,11 @@ int main(int argc, char*argv[]) {
         else std::cout << "Running frames " << frameNumber + 1 << " through " << frameNumber + BATCH_SIZE << std::endl;
         for (int t = 0; t < BATCH_SIZE; t++) {
             results[t].clear();
-            capture >> inFrame;
+            if (counter == 0) {
+                capture >> inFrame;
+            }
+            counter = (counter + 1) % frameLoop;
+
             if (inFrame.empty()) {
                 done = true;
                 break;

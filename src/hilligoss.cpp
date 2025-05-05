@@ -1,20 +1,5 @@
 #include "hilligoss.h"
 
-void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double curve) {
-    // Create an RNG device for all the subfunctions
-    std::random_device rd;
-    std::mt19937 rng(rd());
-    
-    // Select a subset of pixels from the image
-    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, curve, rng);
-
-    // Order the pixels and convert them into samples
-    std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, rng);
-    
-    // Add the samples onto the end of the destination vector
-    destination.insert(destination.end(), samples.begin(), samples.end());
-}
-
 // Quickly delete an item from a vector by swapping the target and the last element,
 // then popping the last element. This does not preserve the order of the vector, but
 // we're already working in a random order so it's fine
@@ -319,4 +304,19 @@ std::vector<int16_t> determinePath(std::vector<int> pixelsOriginal, int targetCo
     }
 
     return outputFile;
+}
+
+void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double curve) {
+    // Create an RNG device for all the subfunctions
+    std::random_device rd;
+    std::mt19937 rng(rd());
+
+    // Select a subset of pixels from the image
+    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, curve, rng);
+
+    // Order the pixels and convert them into samples
+    std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, rng);
+
+    // Add the samples onto the end of the destination vector
+    destination.insert(destination.end(), samples.begin(), samples.end());
 }
