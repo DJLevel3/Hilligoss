@@ -1,26 +1,23 @@
 #include "hilligoss.h"
 
-//#define TIMEIT
-
 void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double curve) {
+    // Create an RNG device to be used later
     std::random_device rd;
     std::mt19937 rng(rd());
-#ifdef TIMEIT
-	auto now = std::chrono::high_resolution_clock::now();
-#endif
     
-    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, rng, curve);
+    // Select a subset of pixels from the image
+    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, curve, rng);
 
+    // Order the pixels and convert them into samples
     std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, rng);
-
-#ifdef TIMEIT
-    double timeToExecute = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - now).count();
-    std::cout << "thread time: " << timeToExecute << std::endl << std::endl;
-#endif
     
+    // Add the samples onto the end of the destination vector
     destination.insert(destination.end(), samples.begin(), samples.end());
 }
 
+// Quickly delete an item from a vector by swapping the target and the last element,
+// then popping the last element. This does not preserve the order of the vector, but
+// we're already working in a random order so it's fine
 template <class T>
 void quickDelete(std::vector<T>& vec, int idx)
 {
@@ -28,26 +25,30 @@ void quickDelete(std::vector<T>& vec, int idx)
     vec.pop_back();
 }
 
-std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, std::mt19937& g, double curve) {
+// Choose <targetCount> pixels from <image> that are greater than <black>, skewing towards <white> with a curve factor of <curve>.
+std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, double curve, std::mt19937& g) {
     int pixelCount = 0;
-    double lookup[256];
     int x, y;
     double z, v;
     std::vector<int> pixels;
     pixels.reserve(targetCount);
 
+    // Create a lookup table of all the possible pixel values and their curved counterparts
+    double lookup[256];
     for (double i = 0; i < 256; i++) {
         lookup[(int)i] = pow(i / white, curve) * white;
     }
 
+    // Create a list of candidates to select, then shuffle them up
     std::vector<int> candidates(PIX_CT * PIX_CT);
 	for (int i = 0; i < candidates.size(); i++) candidates[i] = i;
     std::shuffle(candidates.begin(), candidates.end(),g);
 
+    // This controls how likely a pixel is to be picked when it otherwise wouldn't
     double greed = 0.7;
 
+    // Loop until we've picked enough pixels
     int index = 0;
-    std::vector<int> erase;
     while (pixelCount < targetCount) {
         z = rand() % (100 * white) * 0.01;
 		if (z < lookup[black] * greed) continue;
@@ -64,6 +65,11 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
             pixels.push_back(y);
             quickDelete(candidates, index);
             index--;
+        }
+        if (candidates.size() <= 0) {
+            pixels.push_back(PIX_CT >> 1);
+            pixels.push_back(PIX_CT >> 1);
+            break;
         }
         if (candidates.size() < targetCount - pixelCount) {
             for (index = 0; index < candidates.size(); index++) {

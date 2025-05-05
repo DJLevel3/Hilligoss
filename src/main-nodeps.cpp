@@ -1,4 +1,13 @@
-#include "hilligoss.h"
+// ========== Drop-in Hilligoss Wrapper ==========
+// 
+// Note: May require slight modification to the
+// processing scripts, as the original was not
+// consistent with the formatting on the options.
+// Convention here is to have a space between an
+// option and its corresponding value.
+//     (e.g. "-c 2000" instead of "-c2000")
+// 
+// =============== DJ_Level_3 2025 ===============
 
 #include <vector>
 #include <string>
@@ -6,92 +15,141 @@
 #include <iostream>
 #include <sstream>
 
+#include "hilligoss.h"
+
 int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv + 1, argv + argc);
-    std::string infname = "input.pgm";
-    std::string outfname = "output.pcm";
-    double sampleRate = 192000;
-    int BATCH_SIZE = 1;
+    std::string inputFileName = "";
+
+    // Set defaults
     int black_level = 30;
     int white_level = 230;
     int jump_timer = 100;
-    double fps = 24;
-    int searchDistance = 30;
-    bool showPreview = false;
     int syncCount = 1;
-    int targetPointCount = int(sampleRate / fps);
-    double curve = 2.5;
+    int searchDistance = 30;
+    double curve = 1;
 
-    // Loop over command-line args
-    // (Actually I usually use an ordinary integer loop variable and compare
-    // args[i] instead of *i -- don't tell anyone! ;)
-    if (args.size() < 2) args.push_back("-h");
+    // Get the default target point count from sample rate and fps
+    double sampleRate = 192000;
+    double fps = 24;
+    int targetPointCount = int(sampleRate / fps);
+
+
+    // Make sure there are arguments and that one of them is an input filename
+    if (args.size() < 2 || std::find(args.begin(), args.end(), "-f") == args.end()) args[0] = "-h";
+
+    // Loop over command-line arguments
     for (auto i = args.begin(); i != args.end(); ++i) {
-        if (*i == "-h" || *i == "--help") {
-            std::cout << "Usage: %s -f <filename> -c <desired vectors per frame> -b <black threshold 0-255> -w <white threshold 1-255>" << std::endl;
-            std::cout << "    Example: % s - f image.pgm - c2000 - b20 - w234 - x160 - y100 - j200\n    Notes : Images must be 8 - bit ASCII PGM, 512x512 only.\n" << std::endl;
+        // get a string from the args
+        std::string s = *i;
+
+        // Help message
+        if (s == "-h" || s == "--help") {
+            std::cout << "Usage: hilligoss-nodeps -f <filename> -c <desired vectors per frame> -b <black threshold 0-255> -w <white threshold 1-255>" << std::endl;
+            std::cout << "                        -j <jump time 1-10000> [-v (enable verbose mode)] [-t (enable tonal mode)]" << std::endl;
+            std::cout << "    Defaults: hilligoss-nodeps -f <your_input_here.pgm> -c 8000 -b 30 -w 230 -j 100" << std::endl;
+            std::cout << "    Notes : Images must be 8 - bit ASCII PGM, 512x512 only." << std::endl << std::endl;
             return 1;
         }
-        std::string s = *i;
-        if (s.substr(0, 2) == "-f") {
-            infname = s.substr(2, s.size() - 2);
+
+        // filename
+        if (s == "-f") {
+            inputFileName = *++i;
         }
-        if (s.substr(0, 2) == "-c") {
-            targetPointCount = std::stoi(s.substr(2, s.size() - 2));
+
+        // target count
+        else if (s == "-c") {
+            targetPointCount = (int)std::stod(*++i);
         }
-        if (s.substr(0, 2) == "-b") {
-            black_level = std::stoi(s.substr(2, s.size() - 2));
+
+        // black level
+        else if (s == "-b") {
+            black_level = (int)std::stod(*++i);
         }
-        if (s.substr(0, 2) == "-w") {
-            white_level = std::stoi(s.substr(2, s.size() - 2));
+
+        // white level
+        else if (s == "-w") {
+            white_level = (int)std::stod(*++i);
         }
-        if (s.substr(0, 2) == "-j") {
-            jump_timer = std::stoi(s.substr(2, s.size() - 2));
+
+        // jump count
+        else if (s == "-j") {
+            jump_timer = (int)std::stod(*++i);
+        }
+
+        // tonal
+        else if (s == "-t") {
+            syncCount = 2;
         }
     }
 
-    outfname = infname.substr(0, infname.size() - 4).append(".pcm");
+    // Divide target point count by the sync count, resultant samples will be repeated later to equal the original target
+    targetPointCount /= syncCount;
 
-    int row = 0, col = 0, numrows = 0, numcols = 0, discard = 0;
-    std::ifstream infile(infname);
+    // Temp variables
+    int numRows = 0, numCols = 0;
+
+    // This one's just for discarding unnecessary variables
+    int trashCan = 0;
     std::stringstream ss;
     std::string inputLine = "";
 
-    // First line : version
+    // Open the PGM file
+    std::ifstream infile(inputFileName);
+
+    // Make sure PGM version is P5
     getline(infile, inputLine);
     if (inputLine != "P5") {
         std::cerr << "Version error!" << std::endl;
         return -1;
     }
 
-    // Continue with a stringstream
+    // Read the rest of the file into the stringstream, this will tokenize it
     ss << infile.rdbuf();
-    // Third line : size
-    ss >> numcols >> numrows;
-    if (numcols != PIX_CT || numrows != PIX_CT) {
-        std::cerr << "Dimension mismatch: Expected " << PIX_CT << "x" << PIX_CT << ", got " << numrows << "x" << numcols << std::endl;
+
+    // Get the size of the image
+    ss >> numCols >> numRows;
+
+    // Make sure image size matches expected size
+    if (numCols != PIX_CT || numRows != PIX_CT) {
+        std::cerr << "Dimension mismatch: Expected " << PIX_CT << "x" << PIX_CT << ", got " << numRows << "x" << numCols << std::endl;
         return -2;
     }
-    ss >> discard;
 
-    std::vector<unsigned char> array;
-    array.reserve(PIX_CT * PIX_CT);
-    unsigned char res = 0;
-    // Following lines : data 
-    for (row = 0; row < numrows; ++row) {
-        for (col = 0; col < numcols; ++col) {
-            array.push_back(ss.get());
+    // Discard the next token, it's not needed
+    ss >> trashCan;
+
+    // Reserve the array of pixels
+    std::vector<unsigned char> image;
+    image.reserve(PIX_CT * PIX_CT);
+
+    // Loop over the file
+    for (int row = 0; row < numRows; ++row) {
+        for (int col = 0; col < numCols; ++col) {
+            // Get the next character as an unsigned char and put it in the array
+            image.push_back(ss.get());
         }
     }
+
+    // We're done with the input file now, so close it
     infile.close();
 
+    // Create the vector of samples that Hilligoss will populate
     std::vector<int16_t> pcm;
-    hilligoss(array, pcm, targetPointCount, black_level, white_level, jump_timer, searchDistance, curve);
 
-    std::ofstream outFile = std::ofstream(outfname.c_str(), std::ios_base::binary);
+    // Run Hilligoss!
+    hilligoss(image, pcm, targetPointCount, black_level, white_level, jump_timer, searchDistance, std::pow(2.0, curve));
 
-    outFile.write((char*)pcm.data(), pcm.size() * sizeof(int16_t));
+    // Generate the output file name and open it
+    std::string outputFileName = inputFileName.substr(0, inputFileName.size() - 4).append(".pcm");
+    std::ofstream outFile = std::ofstream(outputFileName.c_str(), std::ios_base::binary);
 
+    // Write the PCM data to the file as many times as needed
+    for (int i = 0; i < syncCount; i++) {
+        outFile.write((char*)pcm.data(), pcm.size() * sizeof(int16_t));
+    }
+
+    // make sure file is fully written and then close it
     outFile.flush();
     outFile.close();
 }

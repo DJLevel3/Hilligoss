@@ -7,10 +7,10 @@ find_package(OpenCV CONFIG PATHS "%OPENCV_DIR%")
 add_library(Hilligoss   src/hilligoss.cpp
                         src/hilligoss.h)
 
-add_executable(Hilligoss-OpenCV src/main.cpp)
-add_executable(Hilligoss-NoDeps src/main-nodeps.cpp)
+add_executable(Hilligoss-OpenCV src/main-opencv.cpp)
+add_executable(hilligoss-nodeps src/main-nodeps.cpp)
 
-target_link_libraries(Hilligoss-NoDeps Hilligoss)
+target_link_libraries(hilligoss-nodeps Hilligoss)
 
 if (DEFINED OpenCV_FOUND)
     include_directories(include ${OpenCV_INCLUDE_DIRS} src)

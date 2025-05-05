@@ -133,7 +133,6 @@ void resizeKeepAspectRatio(const cv::Mat& src, cv::Mat& dst, const cv::Size& dst
 
 int main(int argc, char*argv[]) {
     auto now = std::chrono::steady_clock::now();
-    bool realtime = false;
 	// parse args
 	std::vector<std::string> args(argv + 1, argv + argc);
     std::string infname = "input.mp4";
@@ -152,13 +151,13 @@ int main(int argc, char*argv[]) {
     // Loop over command-line args
     // (Actually I usually use an ordinary integer loop variable and compare
     // args[i] instead of *i -- don't tell anyone! ;)
-	if (args.size() < 2 || args[0] != "-i") args.push_back("-h");
+	if (args.size() < 2 || std::find(args.begin(), args.end(), "-i") == args.end()) args[0] = "-h";
     for (auto i = args.begin(); i != args.end(); ++i) {
         if (*i == "-h" || *i == "--help") {
             std::cout << "Syntax: Hilligoss-OpenCV -i <input filename>\n Options: -o <output filename>" <<
-                "\n          -b <black level>\n          -w <white level>\n          -j <jump spacing>" <<
-                "\n          -r <sample rate>\n          -t <thread count>\n          -f <framerate>" <<
-                "\n          -d <search distance>\n          -p (enable preview)\n          -s (sync mode)" << std::endl;
+                "\n          -b <black level (0-255)>\n          -w <white level (0-255)>\n          -j <jump spacing (>= 1)>" <<
+                "\n          -r <sample rate (>= 1)>\n          -t <thread count (>= 1)>\n          -f <framerate (>= 0.1)>" <<
+                "\n          -d <search radius (<= 0 to disable)>\n          -p (enable preview)\n          -s (sync mode)\n          -c <curve (-2 to +2) - linear is 0, default is 1>" << std::endl;
             return 0;
         }
         else if (*i == "-i" || *i == "-input") {
@@ -168,25 +167,25 @@ int main(int argc, char*argv[]) {
             outfname = *++i;
         }
         else if (*i == "-b" || *i == "-black") {
-            black_level = stoi(*++i);
+            black_level = std::min(255, std::max(0, int(stod(*++i))));
         }
         else if (*i == "-w" || *i == "-white") {
-            white_level = stoi(*++i);
+            white_level = std::min(255, std::max(0, int(stod(*++i))));
         }
         else if (*i == "-j" || *i == "-jump") {
-            jump_timer = stoi(*++i);
+            jump_timer = std::max(stoi(*++i), 1);
         }
         else if (*i == "-r" || *i == "-rate") {
-            sampleRate = stod(*++i);
+            sampleRate = std::max(1.0, stod(*++i));
         }
         else if (*i == "-t" || *i == "-threads") {
-            BATCH_SIZE = stoi(*++i);
+            BATCH_SIZE = std::max(1, stoi(*++i));
         }
 		else if (*i == "-f" || *i == "-framerate" || *i == "-frequency") {
-			fps = stod(*++i);
+			fps = std::max(0.1, stod(*++i));
 		}
         else if (*i == "-d" || *i == "-distance") {
-            searchDistance = stoi(*++i);
+            searchDistance = int(stod(*++i));
             if (searchDistance < 1) searchDistance = PIX_CT;
         }
         else if (*i == "-p" || *i == "-preview") {
@@ -194,6 +193,9 @@ int main(int argc, char*argv[]) {
         }
         else if (*i == "-s" || *i == "-sync") {
             syncCount = 2;
+        }
+        else if (*i == "-c" || *i == "-curve") {
+            curve = std::pow(2.0, std::min(2.0, std::max(-2.0, stod(*++i))));
         }
     }
 
