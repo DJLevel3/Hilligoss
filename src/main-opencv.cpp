@@ -221,7 +221,7 @@ int main(int argc, char*argv[]) {
 
     if (fps == -1) fps = capture.get(cv::CAP_PROP_FPS);
     double delta = 1000.0 / fps;
-    int targetPointCount = (int)(sampleRate / fps / syncCount);
+    int targetPointCount = (int)(sampleRate / fps / syncCount / frameLoop);
 
     srand((unsigned)time(NULL));
 
@@ -243,17 +243,18 @@ int main(int argc, char*argv[]) {
             results[t].clear();
             if (counter == 0) {
                 capture >> inFrame;
+
+                if (inFrame.empty()) {
+                    done = true;
+                    break;
+                }
+
+                cv::cvtColor(inFrame, inFrame, cv::COLOR_BGR2GRAY);
+                inFrame.convertTo(procFrame, CV_8UC1);
+                resizeKeepAspectRatio(procFrame, inFrame, cv::Size(PIX_CT, PIX_CT), {});
             }
             counter = (counter + 1) % frameLoop;
 
-            if (inFrame.empty()) {
-                done = true;
-                break;
-            }
-
-            cv::cvtColor(inFrame, inFrame, cv::COLOR_BGR2GRAY);
-            inFrame.convertTo(procFrame, CV_8UC1);
-            resizeKeepAspectRatio(procFrame, inFrame, cv::Size(PIX_CT, PIX_CT), {});
 
             // frame is now PIX_CTxPIX_CT, 8-bit grayscale
             if (t == 0 && showPreview) {
