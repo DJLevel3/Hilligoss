@@ -146,7 +146,8 @@ int main(int argc, char*argv[]) {
     int searchDistance = 30;
     bool showPreview = false;
     int syncCount = 1;
-    double curve = 2.5;
+    int boost = 30;
+    double curve = 1;
     int frameLoop = 1;
 
     // Loop over command-line args
@@ -196,10 +197,13 @@ int main(int argc, char*argv[]) {
             syncCount = 2;
         }
         else if (*i == "-c" || *i == "-curve") {
-            curve = std::pow(2.0, std::min(2.0, std::max(-2.0, stod(*++i))));
+            curve = std::min(2.0, std::max(-2.0, stod(*++i)));
         }
         else if (*i == "-fl" || *i == "-frameloop") {
             frameLoop = std::max(1, stoi(*++i));
+        }
+        else if (*i == "-bo" || *i == "-boost") {
+            boost = std::min(255.0, std::max(0.0, stod(*++i)));
         }
     }
 
@@ -237,8 +241,8 @@ int main(int argc, char*argv[]) {
         if (BATCH_SIZE < 1) {
             BATCH_SIZE = 1;
         }
-        if (BATCH_SIZE == 1) std::cout << "Running frame " << frameNumber + 1 << std::endl;
-        else std::cout << "Running frames " << frameNumber + 1 << " through " << frameNumber + BATCH_SIZE << std::endl;
+        if (BATCH_SIZE == 1) std::cout << "Running frame " << (frameNumber /frameLoop) + 1 << std::endl;
+        else std::cout << "Running frames " << (frameNumber / frameLoop) << " through " << (frameNumber + BATCH_SIZE) / frameLoop << std::endl;
         for (int t = 0; t < BATCH_SIZE; t++) {
             results[t].clear();
             if (counter == 0) {
@@ -261,13 +265,10 @@ int main(int argc, char*argv[]) {
 				show(inFrame);
 			}
 
-            //std::cout << t << std::endl;
-
             frame = (inFrame.isContinuous() ? inFrame : inFrame.clone()).reshape(1, 1); // data copy here
             //frame = std::vector<uchar>(inFrame.begin<uchar>(), inFrame.end<uchar>());
 
-            // do the hilligoss stuff
-            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, curve));
+            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve));
 
 			frameNumber++;
         }

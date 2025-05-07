@@ -10,8 +10,8 @@ void quickDelete(std::vector<T>& vec, int idx)
     vec.pop_back();
 }
 
-// Choose <targetCount> pixels from <image> that are greater than <black>, skewing towards <white> with a curve factor of <curve>.
-std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, double curve, std::mt19937& g) {
+// Choose <targetCount> pixels from <image> that are greater than <black>, skewing towards <white> with a curve factor of <curve> then boosting everything by <boost>.
+std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, double boost, double curve, std::mt19937& g) {
     int pixelCount = 0;
     int x, y;
     double z, v;
@@ -23,7 +23,17 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
     // Create a lookup table of all the possible pixel values and their curved counterparts
     double lookup[256];
     for (double i = 0; i < 256; i++) {
-        lookup[(int)i] = pow(i / white, curve) * white;
+        // Set white level using (i - black) / (white - black), clamped to prevent problems
+        z = std::max(0.0, i - black) / std::max(0.00001, double(white - black));
+
+        // Apply curve to adjusted pixels
+        z = pow(z, pow(2, curve));
+
+        // Apply boost
+        z = boost + (255 - boost) * z;
+
+        // Ensure values are not unreasonably high (to prevent rounding errors later)
+        lookup[int(i)] = std::min(512.0, z);
     }
 
     // Create a list of candidates to select, then shuffle them up
@@ -31,8 +41,8 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
 	for (int i = 0; i < candidates.size(); i++) candidates[i] = i;
     std::shuffle(candidates.begin(), candidates.end(),g);
 
-    // This controls how likely a pixel is to be picked when it otherwise wouldn't
-    double greed = 0.7;
+    // This controls how likely a pixel is to be rejected when it's just above the threshold
+    double greed = 0.8;
 
     // Start on the first pixel in the shuffled list
     int index = 0;
@@ -41,8 +51,10 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
     while (pixelCount < targetCount) {
         // Pick a random number between 0 and <white> with some extra resolution
         z = rand() % (100 * white) * 0.01;
-        // If that random number is so low it can't be picked, don't check any further
-		if (z < lookup[black] * greed) continue;
+
+        // Removed to test different curve system
+        //// If that random number is so low it can't be picked, don't check any further
+		// if (z < lookup[black] * greed) continue;
 
         // Get the pixel value at the current index and curve it
         v = lookup[image[candidates[index]]] * greed;
@@ -107,9 +119,9 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
             // Loop back through
             index = index % candidates.size();
 
-            // Increase greed a bit, breaking out if it's really big to prevent potential infinite loops
+            // Increase greed a bit, breaking out if it's big enough to prevent potential infinite loops
             greed = greed * 1.05;
-            if (greed > 1.5) break;
+            if (greed > 1.15) break;
         }
     }
 
@@ -306,13 +318,13 @@ std::vector<int16_t> determinePath(std::vector<int> pixelsOriginal, int targetCo
     return outputFile;
 }
 
-void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double curve) {
+void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve) {
     // Create an RNG device for all the subfunctions
     std::random_device rd;
     std::mt19937 rng(rd());
 
     // Select a subset of pixels from the image
-    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, curve, rng);
+    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, boost, curve, rng);
 
     // Order the pixels and convert them into samples
     std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, rng);

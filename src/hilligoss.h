@@ -30,6 +30,7 @@
 //   whiteThreshold: always accept pixels above this value
 //   jumpPeriod: maximum number of samples in one stroke
 //   searchDistance: how far to search for next sample in stroke
+//   boost: how far to increase the pixel value at the black level
 //   curve: how aggressively to curve the input pixels
 void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount,
-    unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double curve);
+    unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve);

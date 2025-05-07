@@ -27,6 +27,7 @@ int main(int argc, char* argv[]) {
     int jump_timer = 100;
     int syncCount = 1;
     int searchDistance = 30;
+    double boost = 30;
     double curve = 1;
 
     // Get the default target point count from sample rate and fps
@@ -138,7 +139,7 @@ int main(int argc, char* argv[]) {
     std::vector<int16_t> pcm;
 
     // Run Hilligoss!
-    hilligoss(image, pcm, targetPointCount, black_level, white_level, jump_timer, searchDistance, std::pow(2.0, curve));
+    hilligoss(image, pcm, targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve);
 
     // Generate the output file name and open it
     std::string outputFileName = inputFileName.substr(0, inputFileName.size() - 4).append(".pcm");
