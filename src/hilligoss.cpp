@@ -4,8 +4,7 @@
 // then popping the last element. This does not preserve the order of the vector, but
 // we're already working in a random order so it's fine
 template <class T>
-void quickDelete(std::vector<T>& vec, int idx)
-{
+void quickDelete(std::vector<T>& vec, int idx) {
     vec[idx] = vec.back();
     vec.pop_back();
 }
@@ -121,7 +120,7 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
 
             // Increase greed a bit, breaking out if it's big enough to prevent potential infinite loops
             greed = greed * 1.05;
-            if (greed > 1.15) break;
+            if (greed > 5) break;
         }
     }
 
@@ -274,12 +273,11 @@ std::vector<int16_t> determinePath(std::vector<int> pixelsOriginal, int targetCo
     // How far we expect to be through the path right now
     double expectedProgress = 0;
 
-
     for (int i = 0; i < path.size() / 2; i++)
     {
         // Convert X and Y to PCM values
-        xShort = (int16_t)(path[i*2] % PIX_CT) * (65536 / PIX_CT) - 32767;
-        yShort = -(int16_t)(path[i*2+1] % PIX_CT) * (65536 / PIX_CT) - 32767;
+        xShort = (int16_t)(path[i*2] % PIX_CT) * (65536 / PIX_CT) - 32768;
+        yShort = -(int16_t)(path[i*2+1] % PIX_CT) * (65536 / PIX_CT) - 32768;
 
         // Put them in the PCM stream
         outputFile.push_back(xShort);

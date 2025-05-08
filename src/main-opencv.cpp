@@ -1,5 +1,7 @@
 #include "hilligoss.h"
 
+#include "AudioFile.h"
+
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
@@ -136,7 +138,7 @@ int main(int argc, char*argv[]) {
 	// parse args
 	std::vector<std::string> args(argv + 1, argv + argc);
     std::string infname = "input.mp4";
-    std::string outfname = "output.pcm";
+    std::string outfname = "output.wav";
     double sampleRate = 192000;
     int BATCH_SIZE = 1;
     int black_level = 30;
@@ -283,12 +285,28 @@ int main(int argc, char*argv[]) {
         threads.clear();
     }
 
+    // PCM File
+    /*
     std::ofstream outFile = std::ofstream(outfname.c_str(), std::ios_base::binary);
-
     outFile.write((char*)pcm.data(), pcm.size() * sizeof(int16_t));
-
     outFile.flush();
     outFile.close();
+    */
+
+    // Wav File
+    AudioFile<int16_t> outFile;
+    outFile.setNumChannels(2);
+    outFile.setSampleRate(sampleRate);
+    outFile.setNumSamplesPerChannel(pcm.size() / 2);
+
+    for (int channel = 0; channel < 2; channel++) {
+        for (int i = 0; i < pcm.size() / 2; i++) {
+            outFile.samples[channel][i] = pcm[i * 2 + channel];
+        }
+    }
+
+    outFile.save(outfname, AudioFileFormat::Wave);
+
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - now).count() * 0.001;
     std::cout << "Execution took " << (duration) << " seconds to process " << frameNumber << " frames." << std::endl;
     std::cout << "That's " << frameNumber / duration << " frames per second," << std::endl;
