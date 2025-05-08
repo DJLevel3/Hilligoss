@@ -1,2 +1,0 @@
-#!/bin/sh
-ffmpeg -y -f s16le -sample_fmt s16le -ar 192000 -ac 2 -i output.pcm -c:a pcm_s16le output.wav
