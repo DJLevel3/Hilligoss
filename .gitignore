@@ -3,6 +3,7 @@ build
 build-linux
 buildMinGW
 cmake-build-debug
+out
 Debug
 .vs
 *.json
