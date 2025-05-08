@@ -109,9 +109,9 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
             break;
         }
 
-        // Advance by a randomized amount of pixels
+        // Advance by a small but randomized amount of pixels
         // This means we don't have to re-shuffle each time, making the algorithm significantly faster
-        index += rand() % PIX_CT;
+        index += rand() % 32;
 
         // If we've advanced past the end of the candidate list...
         if (index >= candidates.size()) {
@@ -119,8 +119,8 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
             index = index % candidates.size();
 
             // Increase greed a bit, breaking out if it's big enough to prevent potential infinite loops
-            greed = greed * 1.05;
-            if (greed > 5) break;
+            greed = greed * 1.01;
+            if (greed > 1.15) break;
         }
     }
 
