@@ -1,5 +1,5 @@
-# Hilligoss!
-But harder, better, faster, stronger!
+# Hilligoss
+A pixel-to-vector tool and library by BUS ERROR Collective
 
 ### Usage
 ```
