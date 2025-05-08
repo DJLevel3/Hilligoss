@@ -21,6 +21,7 @@
 #include <random>
 #include <iostream>
 #include <cfloat>
+#include <algorithm>
 
 // Convert an 8-bit grayscale image into 16-bit stereo PCM
 //   image: the image to convert, flattened row-by-row
