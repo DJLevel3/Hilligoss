@@ -1,6 +1,8 @@
-cmake_minimum_required(VERSION 3.10)
-project(HilligossProject CXX)
+cmake_minimum_required(VERSION 3.13)
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_C_COMPILER gcc)
+set(CMAKE_CXX_COMPILER g++)
+project(HilligossProject CXX)
 
 add_library(Hilligoss   src/hilligoss.cpp
                         src/hilligoss.h)
@@ -8,7 +10,7 @@ add_library(Hilligoss   src/hilligoss.cpp
 add_executable(hilligoss-nodeps src/main-nodeps.cpp)
 target_link_libraries(hilligoss-nodeps Hilligoss)
 
-find_package(OpenCV CONFIG PATHS "%OPENCV_DIR%") 
+find_package(OpenCV) 
 
 if (DEFINED OpenCV_FOUND)
     include_directories(include ${OpenCV_INCLUDE_DIRS} src)
