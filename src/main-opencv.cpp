@@ -16,6 +16,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #include <opencv2/videoio.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include <ncursesw/ncurses.h>
+
 #include <vector>
 #include <string>
 #include <chrono>
@@ -23,14 +25,27 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #include <fstream>
 #include <iostream>
 
-void monitor(bool* flag) {
-    std::string str;
-    if (fgetc(stdin) != EOF) *flag = true;
-    *flag = true;
-}
-
 void show(const cv::Mat &img){
 	cv::imshow("input",img);
+}
+
+bool kbhit(int time)
+{
+    if (time > 0) {
+        nodelay(stdscr, FALSE);
+    }
+    else {
+        nodelay(stdscr, TRUE);
+    }
+    int ch = wgetch(stdscr);
+
+    if (ch != ERR) {
+        ungetch(ch);
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 void resizeKeepAspectRatio(const cv::Mat& src, cv::Mat& dst, const cv::Size& dstSize, const cv::Scalar& backgroundColor)
@@ -164,7 +179,10 @@ int main(int argc, char*argv[]) {
     // Loop over command-line args
     // (Actually I usually use an ordinary integer loop variable and compare
     // args[i] instead of *i -- don't tell anyone! ;)
-	if (args.size() < 2 || std::find(args.begin(), args.end(), "-i") == args.end()) args[0] = "-h";
+    if (args.size() < 2 || std::find(args.begin(), args.end(), "-i") == args.end()) {
+        args.push_back("-h");
+        args[0] = "-h";
+    }
     for (auto i = args.begin(); i != args.end(); ++i) {
         if (*i == "-h" || *i == "--help") {
             std::cout << "Syntax: Hilligoss-OpenCV -i <input filename>\n Options: -o <output filename>" <<
@@ -218,16 +236,22 @@ int main(int argc, char*argv[]) {
         }
     }
 
+    initscr();
+    cbreak();
+    nodelay(stdscr, TRUE);
+    noecho();
+    flushinp();
+
     cv::String inFile(infname);
 
     cv::VideoCapture capture(inFile);
     if (!capture.isOpened()) {
         //error in opening the video input
-        std::cerr << "Unable to open file!" << std::endl;
+        printw("Unable to open file!\n");
         return 0;
     }
     else {
-        std::cout << "File opened!" << std::endl;
+        printw("File opened! Press enter to stop early.\n");
     }
 
     cv::Mat inFrame, procFrame;
@@ -235,6 +259,7 @@ int main(int argc, char*argv[]) {
     std::vector<int16_t> pcm;
 
     if (fps == -1) fps = capture.get(cv::CAP_PROP_FPS);
+    double nFrames = capture.get(cv::CAP_PROP_FRAME_COUNT);
     double delta = 1000.0 / fps;
     int targetPointCount = (int)(sampleRate / fps / syncCount / frameLoop);
 
@@ -244,7 +269,6 @@ int main(int argc, char*argv[]) {
     std::vector<std::vector<int16_t>> results(BATCH_SIZE);
 
     bool done = false;
-    std::thread monitorThread(monitor, &done);
 
 	int frameNumber = 0;
     int counter = 0;
@@ -252,8 +276,10 @@ int main(int argc, char*argv[]) {
         if (BATCH_SIZE < 1) {
             BATCH_SIZE = 1;
         }
-        if (BATCH_SIZE == 1) std::cout << "Running frame " << (frameNumber /frameLoop) + 1 << std::endl;
-        else std::cout << "Running frames " << (frameNumber / frameLoop) << " through " << (frameNumber + BATCH_SIZE) / frameLoop << std::endl;
+        int f = (frameNumber / frameLoop);
+        double progress = 100.0 * f / nFrames;
+        if (BATCH_SIZE == 1) printw("\r%2.1f% - Running frame %d", progress, f);
+        else printw("\r%2.1f% - Running frames %d through %d", progress, f, (frameNumber + BATCH_SIZE)/ frameLoop );
         for (int t = 0; t < BATCH_SIZE; t++) {
             results[t].clear();
             if (counter == 0) {
@@ -282,6 +308,12 @@ int main(int argc, char*argv[]) {
             threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve));
 
 			frameNumber++;
+        }
+        refresh();
+        if (kbhit(0)) {
+            if (getch() == '\n') {
+                done = true;
+            }
         }
         for (std::thread& t : threads) {
             t.join();
@@ -317,9 +349,13 @@ int main(int argc, char*argv[]) {
     outFile.save(outfname, AudioFileFormat::Wave);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - now).count() * 0.001;
-    std::cout << "Execution took " << (duration) << " seconds to process " << frameNumber << " frames." << std::endl;
-    std::cout << "That's " << frameNumber / duration << " frames per second," << std::endl;
-    std::cout << "or a speed factor of " << frameNumber / duration / fps << " (where >=1 is realtime)." << std::endl;
-    std::cout << "Press enter to finish if you haven't already!" << std::endl;
-    monitorThread.join();
+    clear();
+    printw("Execution took %f seconds to process %d frames.\n", duration, nFrames);
+    printw("That's %f frames per second, or a speed factor of %f (where >=1 is realtime).\n", frameNumber / duration, frameNumber / duration / fps);
+    printw("This window will close in 5 seconds, or you can press any key to close it sooner.");
+    now = std::chrono::steady_clock::now();
+    refresh();
+    timeout(2500); // this is doubled for some reason
+    getch();
+    endwin();
 }
