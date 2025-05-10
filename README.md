@@ -9,9 +9,10 @@ Hilligoss-OpenCV -i -black 30 -white 255 -jump 500 -rate 192000 -distance 40 -fr
 
 ### Requirements:
 1. OpenCV binaries and development library
-2. GCC (using MinGW on Windows or native on MacOS or Linux)
-3. CMake >=3.10
-4. (Windows) Qt 6.9.0
+2. Ncurses
+3. GCC (using MinGW on Windows or native on MacOS or Linux)
+4. CMake >=3.10
+5. (Windows) Qt 6.9.0
 
 ### Getting OpenCV:
 - Windows (MinGW): `pacman -S mingw-w64-x86_64-opencv`
@@ -30,7 +31,7 @@ make
 ### Windows - MSYS2/MinGW Setup
 1. Get and install MSYS2 [here](https://msys2.org)
 2. Launch `MSYS2 MinGW x64`
-3. Install required packages using `pacman -S make cmake mingw-w64-x86_64-gcc mingw-w64-x86_64-opencv mingw-w64-x86_64-qt6-5compat`
+3. Install required packages using `pacman -S make cmake mingw-w64-x86_64-gcc mingw-w64-x86_64-opencv mingw-w64-x86_64-qt6-5compat mingw-w64-x86_64-ncurses`
     - CRITICAL - Make sure to use `mingw-w64-x86_64-gcc` and NOT `gcc`, or it will crash when processing frames! It took a 3-hour debugging session to figure this out!
 
 ### Notes (Windows):
