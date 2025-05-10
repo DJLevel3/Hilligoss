@@ -14,11 +14,11 @@ Hilligoss-OpenCV -i -black 30 -white 255 -jump 500 -rate 192000 -distance 40 -fr
 4. CMake >=3.10
 5. (Windows) Qt 6.9.0
 
-### Getting OpenCV:
-- Windows (MinGW): `pacman -S mingw-w64-x86_64-opencv`
-- Linux (Debian-like): `sudo apt install libopencv-dev`
-- Linux (Arch-like): `pacman -S opencv`
-- MacOS: `brew install opencv`
+### Getting OpenCV and Ncurses:
+- Windows (MinGW): `pacman -S mingw-w64-x86_64-opencv mingw-w64-x86_64-ncurses`
+- Linux (Debian-like): `sudo apt install libopencv-dev libncurses-dev`
+- Linux (Arch-like): `pacman -S opencv ncurses`
+- MacOS: `brew install opencv ncurses`
 
 ### Building:
 ```
