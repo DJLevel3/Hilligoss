@@ -31,7 +31,7 @@ make
 ### Windows - MSYS2/MinGW Setup
 1. Get and install MSYS2 [here](https://msys2.org)
 2. Launch `MSYS2 MinGW x64`
-3. Install required packages using `pacman -S mingw-w64-x86_64-make mingw-w64-x86_64-cmake cmake mingw-w64-x86_64-gcc mingw-w64-x86_64-opencv mingw-w64-x86_64-qt6-5compat mingw-w64-x86_64-ncurses`
+3. Install required packages using `pacman -S make mingw-w64-x86_64-cmake cmake mingw-w64-x86_64-gcc mingw-w64-x86_64-opencv mingw-w64-x86_64-qt6-5compat mingw-w64-x86_64-ncurses`
     - CRITICAL - Make sure to use `mingw-w64-x86_64-gcc` and NOT `gcc`, or it will crash when processing frames! It took a 3-hour debugging session to figure this out!
 
 ### Notes (Windows):
