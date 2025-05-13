@@ -16,7 +16,11 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #include <opencv2/videoio.hpp>
 #include <opencv2/imgproc.hpp>
 
+#ifdef WIN32
 #include <ncurses/ncurses.h>
+#else
+#include <ncurses.h>
+#endif
 
 #include <vector>
 #include <string>
@@ -333,6 +337,7 @@ int main(int argc, char*argv[]) {
                 done = true;
             }
             else if (key == 'Q') {
+                endwin();
                 std::cout << "Cancelled!" << std::endl;
                 for (std::thread& t : threads) {
                     t.join();
