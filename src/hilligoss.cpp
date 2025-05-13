@@ -18,8 +18,23 @@ void quickDelete(std::vector<T>& vec, int idx) {
     vec.pop_back();
 }
 
+void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve, int mode) {
+    // Create an RNG device for all the subfunctions
+    std::random_device rd;
+    std::mt19937 rng(rd());
+
+    // Select a subset of pixels from the image
+    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, boost, curve, mode, rng);
+
+    // Order the pixels and convert them into samples
+    std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, rng);
+
+    // Add the samples onto the end of the destination vector
+    destination.insert(destination.end(), samples.begin(), samples.end());
+}
+
 // Choose <targetCount> pixels from <image> that are greater than <black>, skewing towards <white> with a curve factor of <curve> then boosting everything by <boost>.
-std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, double boost, double curve, std::mt19937& g) {
+std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, double boost, double curve, int mode, std::mt19937& g) {
     int pixelCount = 0;
     int x, y;
     double z, v;
@@ -118,18 +133,31 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
             break;
         }
 
-        // Advance by a small but randomized amount of pixels
-        // This means we don't have to re-shuffle each time, making the algorithm significantly faster
-        index += rand() % 32;
+        if (mode == 1) {
+            // Advance by a randomized amount of pixels to make reshuffling unnecessary
+            index += rand() % PIX_CT;
+        }
+        else {
+            // Advance by a small but randomized amount of pixels
+            // This means we don't have to re-shuffle each time, making the algorithm significantly faster
+            index += rand() % 32;
+        }
 
         // If we've advanced past the end of the candidate list...
         if (index >= candidates.size()) {
             // Loop back through
             index = index % candidates.size();
 
-            // Increase greed a bit, breaking out if it's big enough to prevent potential infinite loops
-            greed = greed * 1.01;
-            if (greed > 1.15) break;
+            if (mode == 1) {
+                // Increase greed a decent amount, breaking out relatively quickly
+                greed = greed * 1.05;
+                if (greed > 5) break;
+            }
+            else {
+                // Increase greed a bit, breaking out if it's big enough to prevent potential infinite loops
+                greed = greed * 1.01;
+                if (greed > 2) break;
+            }
         }
     }
 
@@ -323,19 +351,4 @@ std::vector<int16_t> determinePath(std::vector<int> pixelsOriginal, int targetCo
     }
 
     return outputFile;
-}
-
-void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve) {
-    // Create an RNG device for all the subfunctions
-    std::random_device rd;
-    std::mt19937 rng(rd());
-
-    // Select a subset of pixels from the image
-    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, boost, curve, rng);
-
-    // Order the pixels and convert them into samples
-    std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, rng);
-
-    // Add the samples onto the end of the destination vector
-    destination.insert(destination.end(), samples.begin(), samples.end());
 }
