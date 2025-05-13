@@ -190,7 +190,8 @@ int main(int argc, char*argv[]) {
     }
     for (auto i = args.begin(); i != args.end(); ++i) {
         if (*i == "-h" || *i == "--help") {
-            std::cout << "Syntax: Hilligoss-OpenCV -i <input filename>\n Options: -o <output filename>" <<
+            std::cout << "Syntax: Hilligoss-OpenCV -i <input filename>" <<
+                "\n Options: -o <output filename>" <<
                 "\n          -b <black level (0-255)>" <<
                 "\n          -w <white level (0-255)>" <<
                 "\n          -j <jump spacing (>= 1)>" <<
@@ -299,8 +300,8 @@ int main(int argc, char*argv[]) {
         }
         int f = (frameNumber / frameLoop);
         double progress = 100.0 * f / nFrames;
-        if (BATCH_SIZE == 1) printw("\r%2.1f% - Running frame %d", progress, f);
-        else printw("\r%2.1f% - Running frames %d through %d", progress, f, (frameNumber + BATCH_SIZE)/ frameLoop );
+        if (BATCH_SIZE == 1) printw("\r%2.1f\% - Running frame %d", progress, f);
+        else printw("\r%2.1f\% - Running frames %d through %d", progress, f, (frameNumber + BATCH_SIZE)/ frameLoop );
         for (int t = 0; t < BATCH_SIZE; t++) {
             results[t].clear();
             if (counter == 0) {
