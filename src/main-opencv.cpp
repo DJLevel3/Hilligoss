@@ -16,7 +16,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #include <opencv2/videoio.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include <ncursesw/ncurses.h>
+#include <ncurses/ncurses.h>
 
 #include <vector>
 #include <string>
@@ -175,20 +175,34 @@ int main(int argc, char*argv[]) {
     int boost = 30;
     double curve = 1;
     int frameLoop = 1;
+    int mode = 0;
 
     // Loop over command-line args
     // (Actually I usually use an ordinary integer loop variable and compare
     // args[i] instead of *i -- don't tell anyone! ;)
-    if (args.size() < 2 || std::find(args.begin(), args.end(), "-i") == args.end()) {
+    if (args.size() < 2 || std::find(args.begin(), args.end(), "-i") >= args.end() - 1) {
         args.push_back("-h");
         args[0] = "-h";
     }
     for (auto i = args.begin(); i != args.end(); ++i) {
         if (*i == "-h" || *i == "--help") {
             std::cout << "Syntax: Hilligoss-OpenCV -i <input filename>\n Options: -o <output filename>" <<
-                "\n          -b <black level (0-255)>\n          -w <white level (0-255)>\n          -j <jump spacing (>= 1)>" <<
-                "\n          -r <sample rate (>= 1)>\n          -t <thread count (>= 1)>\n          -f <framerate (>= 0.1)>" <<
-                "\n          -d <search radius (<= 0 to disable)>\n          -p (enable preview)\n          -s (sync mode)\n          -c <curve (-2 to +2) - linear is 0, default is 1>" << std::endl;
+                "\n          -b <black level (0-255)>" <<
+                "\n          -w <white level (0-255)>" <<
+                "\n          -j <jump spacing (>= 1)>" <<
+                "\n          -r <sample rate (>= 1)>" <<
+                "\n          -t <thread count (>= 1)>" << 
+                "\n          -f <framerate (>= 0.1)>" <<
+                "\n          -d <search radius (<= 0 to disable)>" <<
+                "\n          -p (enable preview)" <<
+                "\n          -s (sync/tonal mode)" <<
+                "\n          -c <curve (-2.0 to +2.0) - linear is 0.0, default is 1.0>" <<
+                "\n          -fl <frame loop>" <<
+                "\n          -bo <pixel brightness boost>" <<
+                "\n          -mode <special mode>" <<
+                "\n              0: normal" <<
+                "\n              1: sparkly" <<
+                "\n              2: extra sparkly" << std::endl;
             return 0;
         }
         else if (*i == "-i" || *i == "-input") {
@@ -234,6 +248,9 @@ int main(int argc, char*argv[]) {
         else if (*i == "-bo" || *i == "-boost") {
             boost = std::min(255.0, std::max(0.0, stod(*++i)));
         }
+        else if (*i == "-mode") {
+            mode = std::max(0, int(stod(*++i)));
+        }
     }
 
     initscr();
@@ -247,11 +264,11 @@ int main(int argc, char*argv[]) {
     cv::VideoCapture capture(inFile);
     if (!capture.isOpened()) {
         //error in opening the video input
-        printw("Unable to open file!\n");
-        return 0;
+        printw("Unable to open video file!\n");
+        return -1;
     }
     else {
-        printw("File opened! Press enter to stop early.\n");
+        printw("File opened! Press enter to save to disk and quit, or shift+q to quit without saving.\n");
     }
 
     cv::Mat inFrame, procFrame;
@@ -305,14 +322,22 @@ int main(int argc, char*argv[]) {
             frame = (inFrame.isContinuous() ? inFrame : inFrame.clone()).reshape(1, 1); // data copy here
             //frame = std::vector<uchar>(inFrame.begin<uchar>(), inFrame.end<uchar>());
 
-            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve));
+            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode));
 
 			frameNumber++;
         }
         refresh();
         if (kbhit(0)) {
-            if (getch() == '\n') {
+            auto key = getch();
+            if (key == '\n') {
                 done = true;
+            }
+            else if (key == 'Q') {
+                std::cout << "Cancelled!" << std::endl;
+                for (std::thread& t : threads) {
+                    t.join();
+                }
+                return 0;
             }
         }
         for (std::thread& t : threads) {
@@ -326,15 +351,6 @@ int main(int argc, char*argv[]) {
         threads.clear();
     }
 
-    // PCM File
-    /*
-    std::ofstream outFile = std::ofstream(outfname.c_str(), std::ios_base::binary);
-    outFile.write((char*)pcm.data(), pcm.size() * sizeof(int16_t));
-    outFile.flush();
-    outFile.close();
-    */
-
-    // Wav File
     AudioFile<int16_t> outFile;
     outFile.setNumChannels(2);
     outFile.setSampleRate(sampleRate);
@@ -350,12 +366,12 @@ int main(int argc, char*argv[]) {
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - now).count() * 0.001;
     clear();
-    printw("Execution took %f seconds to process %d frames.\n", duration, nFrames);
-    printw("That's %f frames per second, or a speed factor of %f (where >=1 is realtime).\n", frameNumber / duration, frameNumber / duration / fps);
-    printw("This window will close in 5 seconds, or you can press any key to close it sooner.");
+    printw("Execution took %f seconds to process %d frames.\n", duration, int(frameNumber / frameLoop));
+    printw("That's %f frames per second, or a speed factor of %f (where >=1 is realtime).\n", frameNumber / frameLoop / duration, frameNumber / frameLoop / duration / fps);
+    printw("This window will close in 10 seconds, or you can press any key to close it sooner.");
     now = std::chrono::steady_clock::now();
     refresh();
-    timeout(2500); // this is doubled for some reason
+    timeout(5000); // this is doubled for some reason
     getch();
     endwin();
 }

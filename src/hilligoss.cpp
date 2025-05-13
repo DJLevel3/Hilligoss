@@ -133,7 +133,7 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
             break;
         }
 
-        if (mode == 1) {
+        if (mode == 1 || mode == 2) {
             // Advance by a randomized amount of pixels to make reshuffling unnecessary
             index += rand() % PIX_CT;
         }
@@ -152,6 +152,11 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
                 // Increase greed a decent amount, breaking out relatively quickly
                 greed = greed * 1.05;
                 if (greed > 5) break;
+            }
+            else if (mode == 2) {
+                // super duper stipply
+                greed = greed * 1.05;
+                if (greed > 2) break;
             }
             else {
                 // Increase greed a bit, breaking out if it's big enough to prevent potential infinite loops
