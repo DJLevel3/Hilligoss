@@ -251,7 +251,7 @@ int main(int argc, char*argv[]) {
             frameLoop = std::max(1, stoi(*++i));
         }
         else if (*i == "-bo" || *i == "-boost") {
-            boost = std::min(255.0, std::max(0.0, stod(*++i)));
+            boost = stod(*++i);
         }
         else if (*i == "-mode") {
             mode = std::max(0, int(stod(*++i)));
@@ -264,16 +264,19 @@ int main(int argc, char*argv[]) {
     noecho();
     flushinp();
 
+    printw("Hilligoss 2.0\n");
+
     cv::String inFile(infname);
 
     cv::VideoCapture capture(inFile);
     if (!capture.isOpened()) {
         //error in opening the video input
-        printw("Unable to open video file!\n");
+        std::cout << "Hilligoss 2.0 - Unable to open video file!\n" << std::endl;
+        endwin();
         return -1;
     }
     else {
-        printw("File opened! Press enter to save to disk and quit, or shift+q to quit without saving.\n");
+        printw("Press enter to save to disk and quit, or shift+q to quit without saving.\n");
     }
 
     cv::Mat inFrame, procFrame;
@@ -339,7 +342,7 @@ int main(int argc, char*argv[]) {
             }
             else if (key == 'Q') {
                 endwin();
-                std::cout << "Cancelled!" << std::endl;
+                std::cout << "Hilligoss 2.0 - Cancelled due to user input!" << std::endl;
                 for (std::thread& t : threads) {
                     t.join();
                 }
