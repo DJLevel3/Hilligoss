@@ -271,8 +271,8 @@ int main(int argc, char*argv[]) {
     cv::VideoCapture capture(inFile);
     if (!capture.isOpened()) {
         //error in opening the video input
-        std::cout << "Hilligoss 2.0 - Unable to open video file!\n" << std::endl;
         endwin();
+        std::cout << "Hilligoss 2.0 - Unable to open video file!\n" << std::endl;
         return -1;
     }
     else {
@@ -374,13 +374,6 @@ int main(int argc, char*argv[]) {
     outFile.save(outfname, AudioFileFormat::Wave);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - now).count() * 0.001;
-    clear();
-    printw("Execution took %f seconds to process %d frames.\n", duration, int(frameNumber / frameLoop));
-    printw("That's %f frames per second, or a speed factor of %f (where >=1 is realtime).\n", frameNumber / frameLoop / duration, frameNumber / frameLoop / duration / fps);
-    printw("This window will close in 10 seconds, or you can press any key to close it sooner.");
-    now = std::chrono::steady_clock::now();
-    refresh();
-    timeout(5000); // this is doubled for some reason
-    getch();
     endwin();
+    std::cout << "Hilligoss 2.0 - Execution took " << duration << " seconds to process " << int(frameNumber / frameLoop) << " frames. That's " << frameNumber / frameLoop / duration << " frames per second, or a speed factor of " << frameNumber / frameLoop / duration / fps << " (where >=1 is realtime)." << std::endl;
 }
