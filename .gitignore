@@ -11,3 +11,4 @@ Debug
 *.vcxproj.*
 *.vcxproj
 *.mkv
+/release.ps1

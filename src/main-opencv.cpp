@@ -183,7 +183,7 @@ int main(int argc, char*argv[]) {
 
     std::time_t timestamp = time(NULL);
     char timestring[50];
-    strftime(timestring, 50, "hilligoss-%m%d%Y-%H%M%S.wav", localtime(&timestamp));
+    strftime(timestring, 50, "hilligoss-%m%d%y-%H%M%S.wav", localtime(&timestamp));
     std::string outfname = timestring;
 
     // Loop over command-line args
