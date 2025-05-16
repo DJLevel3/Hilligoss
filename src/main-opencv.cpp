@@ -28,6 +28,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #include <thread>
 #include <fstream>
 #include <iostream>
+#include <ctime>
 
 void show(const cv::Mat &img){
 	cv::imshow("input",img);
@@ -166,7 +167,6 @@ int main(int argc, char*argv[]) {
 	// parse args
 	std::vector<std::string> args(argv + 1, argv + argc);
     std::string infname = "input.mp4";
-    std::string outfname = "output.wav";
     double sampleRate = 192000;
     int BATCH_SIZE = 1;
     int black_level = 30;
@@ -180,6 +180,11 @@ int main(int argc, char*argv[]) {
     double curve = 1;
     int frameLoop = 1;
     int mode = 0;
+
+    std::time_t timestamp = time(NULL);
+    char timestring[50];
+    strftime(timestring, 50, "hilligoss-%m%d%Y-%H%M%S.wav", localtime(&timestamp));
+    std::string outfname = timestring;
 
     // Loop over command-line args
     // (Actually I usually use an ordinary integer loop variable and compare
