@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
         // Help message
         if (s == "-h" || s == "--help") {
             std::cout << "Usage: hilligoss-nodeps -f <filename> -c <desired vectors per frame> -b <black threshold 0-255> -w <white threshold 1-255>" << std::endl;
-            std::cout << "                        -j <jump time 1-10000> [-v (enable verbose mode)] [-t (enable tonal mode)]" << std::endl;
+            std::cout << "                        -j <jump time 1-10000> [-t (enable tonal mode)]" << std::endl;
             std::cout << "    Defaults: hilligoss-nodeps -f <your_input_here.pgm> -c 8000 -b 30 -w 230 -j 100" << std::endl;
             std::cout << "    Notes : Images must be 8 - bit ASCII PGM, 512x512 only." << std::endl << std::endl;
             return 1;

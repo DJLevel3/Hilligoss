@@ -11,7 +11,11 @@ target_link_libraries(hilligoss-nodeps Hilligoss)
 
 set(CURSES_NEED_NCURSES TRUE)
 find_package(Curses)
-find_package(OpenCV COMPONENTS core highgui videoio imgproc) 
+if (APPLE)
+    find_package(OpenCV COMPONENTS core highgui videoio imgproc PATHS /opt/local/libexec/opencv4/cmake) 
+else()
+    find_package(OpenCV COMPONENTS core highgui videoio imgproc) 
+endif()
 
 if (DEFINED CURSES_FOUND)
 if (DEFINED OpenCV_FOUND)
