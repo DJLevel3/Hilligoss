@@ -189,7 +189,10 @@ int main(int argc, char*argv[]) {
     // Loop over command-line args
     // (Actually I usually use an ordinary integer loop variable and compare
     // args[i] instead of *i -- don't tell anyone! ;)
-    if (args.size() < 2 || std::find(args.begin(), args.end(), "-i") >= args.end() - 1) {
+    if (argc < 2) {
+        args.push_back("-h");
+        args[0] = "-h";
+    } else if (args.size() < 2 || std::find(args.begin(), args.end(), "-i") >= args.end() - 1) {
         args.push_back("-h");
         args[0] = "-h";
     }

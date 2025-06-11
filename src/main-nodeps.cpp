@@ -38,6 +38,7 @@ int main(int argc, char* argv[]) {
     int searchDistance = 30;
     double boost = 30;
     double curve = 1;
+    int mode = 0;
 
     // Get the default target point count from sample rate and fps
     double sampleRate = 192000;
@@ -46,7 +47,9 @@ int main(int argc, char* argv[]) {
 
 
     // Make sure there are arguments and that one of them is an input filename
-    if (args.size() < 2 || std::find(args.begin(), args.end(), "-f") == args.end()) args[0] = "-h";
+    if (argc < 2) args = std::vector<std::string>{ "-h" };
+    else if (args.size() < 2) args[0] = "-h";
+    else if (std::find(args.begin(), args.end(), "-f") == args.end()) args[0] = "-h";
 
     // Loop over command-line arguments
     for (auto i = args.begin(); i != args.end(); ++i) {
@@ -148,7 +151,7 @@ int main(int argc, char* argv[]) {
     std::vector<int16_t> pcm;
 
     // Run Hilligoss!
-    hilligoss(image, pcm, targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve);
+    hilligoss(image, pcm, targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode);
 
     // Generate the output file name and open it
     std::string outputFileName = inputFileName.substr(0, inputFileName.size() - 4).append(".pcm");
