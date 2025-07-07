@@ -151,7 +151,7 @@ int main(int argc, char* argv[]) {
     std::vector<int16_t> pcm;
 
     // Run Hilligoss!
-    hilligoss(image, pcm, targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode);
+    hilligoss(image, pcm, targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode, 0);
 
     // Generate the output file name and open it
     std::string outputFileName = inputFileName.substr(0, inputFileName.size() - 4).append(".pcm");

@@ -215,7 +215,9 @@ int main(int argc, char*argv[]) {
                 "\n          -mode <special mode>" <<
                 "\n              0: normal" <<
                 "\n              1: sparkly" <<
-                "\n              2: extra sparkly" << std::endl;
+                "\n              2: extra sparkly" <<
+                "\n              3-6: scrolling grid" << std::endl;
+
             return 0;
         }
         else if (*i == "-i" || *i == "-input") {
@@ -338,7 +340,7 @@ int main(int argc, char*argv[]) {
             frame = (inFrame.isContinuous() ? inFrame : inFrame.clone()).reshape(1, 1); // data copy here
             //frame = std::vector<uchar>(inFrame.begin<uchar>(), inFrame.end<uchar>());
 
-            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode));
+            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode, frameNumber));
 
 			frameNumber++;
         }

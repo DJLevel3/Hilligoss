@@ -18,25 +18,25 @@ void quickDelete(std::vector<T>& vec, int idx) {
     vec.pop_back();
 }
 
-void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve, int mode) {
+void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve, int mode, int frameNumber) {
     // Create an RNG device for all the subfunctions
     std::random_device rd;
     std::mt19937 rng(rd());
 
     // Select a subset of pixels from the image
-    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, boost, curve, mode, rng);
+    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, boost, curve, mode, rng, frameNumber);
 
     // Order the pixels and convert them into samples
-    std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, rng);
+    std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, mode, rng, frameNumber);
 
     // Add the samples onto the end of the destination vector
     destination.insert(destination.end(), samples.begin(), samples.end());
 }
 
 // Choose <targetCount> pixels from <image> that are greater than <black>, skewing towards <white> with a curve factor of <curve> then boosting everything by <boost>.
-std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, double boost, double curve, int mode, std::mt19937& g) {
+std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, double boost, double curve, int mode, std::mt19937& g, int frameNumber) {
     int pixelCount = 0;
-    int x, y;
+    int x, y, x_temp, y_temp, s;
     double z, v;
 
     // This will be the list of chosen pixels
@@ -60,8 +60,24 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
     }
 
     // Create a list of candidates to select, then shuffle them up
-    std::vector<int> candidates(PIX_CT * PIX_CT);
-	for (int i = 0; i < candidates.size(); i++) candidates[i] = i;
+    std::vector<int> candidates;
+    candidates.reserve(PIX_CT * PIX_CT);
+    for (int i = 0; i < PIX_CT * PIX_CT; i++) {
+        if (mode >= 3 && mode <= 6) {
+            x = i % PIX_CT;
+            y = (int)(i / PIX_CT) % PIX_CT;
+
+            x_temp = ((x >> (mode - 2)) << (mode - 2)) + ((frameNumber) % (int)std::pow(2, mode - 2));
+            y_temp = ((y >> (mode - 2)) << (mode - 2)) + ((frameNumber) % (int)std::pow(2, mode - 2));
+
+            if (x == x_temp || y == y_temp) {
+                candidates.push_back(i);
+            }
+        }
+        else {
+            candidates.push_back(i);
+        }
+    }
     std::shuffle(candidates.begin(), candidates.end(),g);
 
     // This controls how likely a pixel is to be rejected when it's just above the threshold
@@ -167,6 +183,7 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
     }
 
     // Return the finalized list of chosen candidates' X and Y coordinates.
+    s = pixels.size();
     return pixels;
 }
 
@@ -185,7 +202,7 @@ void debug(std::string s) {
 }
 
 // Find an order through which the pixels should be traversed and convert it into 16-bit PCM audio
-std::vector<int16_t> determinePath(std::vector<int> pixelsOriginal, int targetCount, int jumpPeriod, int searchDistance, std::mt19937& g)
+std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetCount, int jumpPeriod, int searchDistance, int mode, std::mt19937& g, int frameNumber)
 {
     std::vector<long> path;
     path.reserve(pixelsOriginal.size());
@@ -196,6 +213,7 @@ std::vector<int16_t> determinePath(std::vector<int> pixelsOriginal, int targetCo
 	std::vector<bool> map(PIX_CT * PIX_CT);
     int nPix = 0;
     for (int i = 0; i < pixelsOriginal.size() - 1; i++) {
+        int s = pixelsOriginal.size();
         int p = pixelsOriginal[i];
         int p2 = pixelsOriginal[++i];
 		map[p2 * PIX_CT + p] = true;
@@ -263,9 +281,9 @@ std::vector<int16_t> determinePath(std::vector<int> pixelsOriginal, int targetCo
                     // If there's a pixel on the map here and it's not the current pixel
                     if ((map[y * PIX_CT + x] == true) && (x != path[path.size() - 2]) && (y != path[path.size() - 1])) {
                         // Calculate the distance to the current pixel (sqrt(dx^2 + dy^2))
-                        double dist = sqrt(pow(double(path[(path.size() - 2)]) - double(x), 2.0) + pow(double(path[(path.size() - 1)] - y), 2.0));
+                         double dist = sqrt(pow(double(path[(path.size() - 2)]) - double(x), 2.0) + pow(double(path[(path.size() - 1)] - y), 2.0));
                         // If it's a new record for the closest point
-                        if (dist < minDistance)
+                        if ((dist > 0) && (dist <= minDistance))
                         {
                             // Set the closest index and distance to the new record point
                             closestIndex = (y * PIX_CT) + x;
