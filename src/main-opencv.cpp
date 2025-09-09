@@ -313,7 +313,7 @@ int main(int argc, char*argv[]) {
         }
         int f = (frameNumber / frameLoop);
         double progress = 100.0 * f / nFrames;
-        if (BATCH_SIZE == 1) printw("\r%2.1f\% - Running frame %d", progress, f);
+        if (BATCH_SIZE == 1) printw("\r%2.1f percent processed - Running frame %d", progress, f);
         else printw("\r%2.1f\% - Running frames %d through %d", progress, f, (frameNumber + BATCH_SIZE)/ frameLoop );
         for (int t = 0; t < BATCH_SIZE; t++) {
             results[t].clear();
