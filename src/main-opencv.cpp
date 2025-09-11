@@ -179,6 +179,7 @@ int main(int argc, char*argv[]) {
     int boost = 30;
     double curve = 1;
     int frameLoop = 1;
+	int split = 1;
     int mode = 0;
 
     std::time_t timestamp = time(NULL);
@@ -199,19 +200,20 @@ int main(int argc, char*argv[]) {
     for (auto i = args.begin(); i != args.end(); ++i) {
         if (*i == "-h" || *i == "--help") {
             std::cout << "Syntax: Hilligoss-OpenCV -i <input filename>" <<
-                "\n Options: -o <output filename>" <<
-                "\n          -b <black level (0-255)>" <<
-                "\n          -w <white level (0-255)>" <<
-                "\n          -j <jump spacing (>= 1)>" <<
-                "\n          -r <sample rate (>= 1)>" <<
-                "\n          -t <thread count (>= 1)>" << 
-                "\n          -f <framerate (>= 0.1)>" <<
-                "\n          -d <search radius (<= 0 to disable)>" <<
-                "\n          -p (enable preview)" <<
-                "\n          -s (sync/tonal mode)" <<
-                "\n          -c <curve (-2.0 to +2.0) - linear is 0.0, default is 1.0>" <<
-                "\n          -fl <frame loop>" <<
-                "\n          -bo <pixel brightness boost>" <<
+                "\n Options: -output <output filename>" <<
+                "\n          -black <black level (0-255)>" <<
+                "\n          -white <white level (0-255)>" <<
+                "\n          -jump <jump spacing (>= 1)>" <<
+                "\n          -rate <sample rate (>= 1)>" <<
+                "\n          -threads <thread count (>= 1)>" << 
+                "\n          -framerate <framerate/frequency (>= 0.1)>" <<
+                "\n          -distance <search radius (<= 0 to disable)>" <<
+                "\n          -preview (enable preview)" <<
+                "\n          -sync (sync/tonal mode)" <<
+                "\n          -curve <curve (-2.0 to +2.0) - linear is 0.0, default is 1.0>" <<
+                "\n          -frameloop <frame loop>" <<
+				"\n          -split <frame time split>" <<
+                "\n          -boost <pixel brightness boost>" <<
                 "\n          -mode <special mode>" <<
                 "\n              0: normal" <<
                 "\n              1: sparkly" <<
@@ -260,6 +262,9 @@ int main(int argc, char*argv[]) {
         else if (*i == "-fl" || *i == "-frameloop") {
             frameLoop = std::max(1, stoi(*++i));
         }
+		else if (*i == "-sp" || *i == "-split") {
+			split = std::max(1, stoi(*++i));
+		}
         else if (*i == "-bo" || *i == "-boost") {
             boost = stod(*++i);
         }
@@ -296,7 +301,9 @@ int main(int argc, char*argv[]) {
     if (fps == -1) fps = capture.get(cv::CAP_PROP_FPS);
     double nFrames = capture.get(cv::CAP_PROP_FRAME_COUNT);
     double delta = 1000.0 / fps;
-    int targetPointCount = (int)(sampleRate / fps / syncCount / frameLoop);
+    int targetPointCount = (int)(sampleRate / fps / syncCount / split);
+	
+	int realLoop = frameLoop * split;
 
     srand((unsigned)time(NULL));
 
@@ -311,10 +318,10 @@ int main(int argc, char*argv[]) {
         if (BATCH_SIZE < 1) {
             BATCH_SIZE = 1;
         }
-        int f = (frameNumber / frameLoop);
+        int f = (frameNumber / realLoop);
         double progress = 100.0 * f / nFrames;
-        if (BATCH_SIZE == 1) printw("\r%2.1f percent processed - Running frame %d", progress, f);
-        else printw("\r%2.1f\% - Running frames %d through %d", progress, f, (frameNumber + BATCH_SIZE)/ frameLoop );
+        if (BATCH_SIZE == 1) printw("\r%2.1f%c processed - Running frame %d", progress, '%', f);
+        else printw("\r%2.1f%c processed - Running frames %d through %d", progress, '%', f, (frameNumber + BATCH_SIZE)/ realLoop );
         for (int t = 0; t < BATCH_SIZE; t++) {
             results[t].clear();
             if (counter == 0) {
@@ -329,7 +336,7 @@ int main(int argc, char*argv[]) {
                 inFrame.convertTo(procFrame, CV_8UC1);
                 resizeKeepAspectRatio(procFrame, inFrame, cv::Size(PIX_CT, PIX_CT), {});
             }
-            counter = (counter + 1) % frameLoop;
+            counter = (counter + 1) % realLoop;
 
 
             // frame is now PIX_CTxPIX_CT, 8-bit grayscale
@@ -385,5 +392,5 @@ int main(int argc, char*argv[]) {
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - now).count() * 0.001;
     endwin();
-    std::cout << "Hilligoss 2.0 - Execution took " << duration << " seconds to process " << int(frameNumber / frameLoop) << " frames. That's " << frameNumber / frameLoop / duration << " frames per second, or a speed factor of " << frameNumber / frameLoop / duration / fps << " (where >=1 is realtime)." << std::endl;
+    std::cout << "Hilligoss 2.0 - Execution took " << duration << " seconds to process " << int(frameNumber / realLoop) << " frames. That's " << frameNumber / realLoop / duration << " frames per second, or a speed factor of " << frameNumber / realLoop / duration / fps << " (where >=1 is realtime)." << std::endl;
 }
