@@ -180,6 +180,7 @@ int main(int argc, char*argv[]) {
     double curve = 1;
     int frameLoop = 1;
 	int split = 1;
+	double border = 0;
     int mode = 0;
 
     std::time_t timestamp = time(NULL);
@@ -199,7 +200,7 @@ int main(int argc, char*argv[]) {
     }
     for (auto i = args.begin(); i != args.end(); ++i) {
         if (*i == "-h" || *i == "--help") {
-            std::cout << "Syntax: Hilligoss-OpenCV -i <input filename>" <<
+            std::cout << "Syntax: Hilligoss-OpenCV -i <input filename> [options]" <<
                 "\n Options: -output <output filename>" <<
                 "\n          -black <black level (0-255)>" <<
                 "\n          -white <white level (0-255)>" <<
@@ -211,9 +212,10 @@ int main(int argc, char*argv[]) {
                 "\n          -preview (enable preview)" <<
                 "\n          -sync (sync/tonal mode)" <<
                 "\n          -curve <curve (-2.0 to +2.0) - linear is 0.0, default is 1.0>" <<
-                "\n          -frameloop <frame loop>" <<
-				"\n          -split <frame time split>" <<
+                "\n          -frameloop <frame loop (reducing playback speed)>" <<
+				"\n          -split <frame time split (preserving playback speed)>" <<
                 "\n          -boost <pixel brightness boost>" <<
+				"\n          -border <percent of time for border (0-99)>" <<
                 "\n          -mode <special mode>" <<
                 "\n              0: normal" <<
                 "\n              1: sparkly" <<
@@ -268,6 +270,9 @@ int main(int argc, char*argv[]) {
         else if (*i == "-bo" || *i == "-boost") {
             boost = stod(*++i);
         }
+		else if (*i == "-bd" || *i == "-border") {
+			border = std::min(99, std::max(0, stoi(*++i))) * 0.01;
+		}
         else if (*i == "-mode") {
             mode = std::max(0, int(stod(*++i)));
         }
@@ -301,7 +306,9 @@ int main(int argc, char*argv[]) {
     if (fps == -1) fps = capture.get(cv::CAP_PROP_FPS);
     double nFrames = capture.get(cv::CAP_PROP_FRAME_COUNT);
     double delta = 1000.0 / fps;
-    int targetPointCount = (int)(sampleRate / fps / syncCount / split);
+    int targetPointCount = (int)(sampleRate / fps / split);
+	int borderPointCount = (int)(targetPointCount * border);
+	targetPointCount -= borderPointCount;
 	
 	int realLoop = frameLoop * split;
 
@@ -347,7 +354,7 @@ int main(int argc, char*argv[]) {
             frame = (inFrame.isContinuous() ? inFrame : inFrame.clone()).reshape(1, 1); // data copy here
             //frame = std::vector<uchar>(inFrame.begin<uchar>(), inFrame.end<uchar>());
 
-            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode, frameNumber));
+            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode, frameNumber, borderPointCount));
 
 			frameNumber++;
         }

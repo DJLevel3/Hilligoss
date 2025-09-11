@@ -44,7 +44,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 //   curve: how aggressively to curve the input pixels
 //   mode: special modes (0 is default, 1 is stippling mode)
 void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount,
-    unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve, int mode = 0, int frameNumber = 0);
+    unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve, int mode = 0, int frameNumber = 0, int borderSamples = 0);
 
 std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetCount, int jumpPeriod, int searchDistance, int mode, std::mt19937& g, int frameNumber = 0);
 std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, double boost, double curve, int mode, std::mt19937& g, int frameNumber = 0);

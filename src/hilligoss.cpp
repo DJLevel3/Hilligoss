@@ -18,7 +18,11 @@ void quickDelete(std::vector<T>& vec, int idx) {
     vec.pop_back();
 }
 
-void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve, int mode, int frameNumber) {
+inline double lerp(double a, double b, double t) {
+	return a + ((b - a) * t);
+}
+
+void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve, int mode, int frameNumber, int borderSamples) {
     // Create an RNG device for all the subfunctions
     std::random_device rd;
     std::mt19937 rng(rd());
@@ -28,6 +32,43 @@ void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& des
 
     // Order the pixels and convert them into samples
     std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, mode, rng, frameNumber);
+	
+	if (borderSamples > 0) {
+		std::vector<double> border;
+		border.reserve(borderSamples * 2);
+		int sideSamples = borderSamples / 4;
+		int extraSideSamples = borderSamples % 4;
+		
+		// top
+		for (int i = 0; i < sideSamples; i++) {
+			border.push_back(lerp(-1.0, 1.0, i / (double)sideSamples));
+			border.push_back(1.0);
+		}
+		
+		// right
+		for (int i = 0; i < sideSamples; i++) {
+			border.push_back(1.0);
+			border.push_back(lerp(1.0, -1.0, i / (double)sideSamples));
+		}
+		
+		// bottom
+		for (int i = 0; i < sideSamples; i++) {
+			border.push_back(lerp(1.0, -1.0, i / (double)sideSamples));
+			border.push_back(-1.0);
+		}
+		
+		// left
+		for (int i = 0; i < sideSamples + extraSideSamples; i++) {
+			border.push_back(-1.0);
+			border.push_back(lerp(-1.0, 1.0, i / (double)(extraSideSamples + sideSamples)));
+		}
+		
+		samples.reserve(samples.size() + borderSamples * 2);
+		
+		for (int i = 0; i < borderSamples * 2; i++) {
+			samples.push_back((int16_t)(border[i] * 32767));
+		}
+	}
 
     // Add the samples onto the end of the destination vector
     destination.insert(destination.end(), samples.begin(), samples.end());
