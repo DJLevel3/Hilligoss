@@ -2,10 +2,7 @@
 A pixel-to-vector tool and library by BUS ERROR Collective
 
 ### Usage
-```
-Hilligoss-2.0 -i "your-video-here.mp4"
-Hilligoss-2.0 -i "your-video-here.mp4" -black 30 -white 255 -jump 500 -rate 192000 -distance 40 -framerate 24 -curve 1 -threads 15 -frameloop 3 -boost 5
-```
+`Hilligoss-2.0 -i "your-video-here.mp4" [options]` (use -h to see the full list of options)
 
 # Building - READ EVERYTHING!
 
