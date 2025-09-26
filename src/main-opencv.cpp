@@ -182,6 +182,7 @@ int main(int argc, char*argv[]) {
 	int split = 1;
 	double border = 0;
     int mode = 0;
+    bool invert = false;
 
     std::time_t timestamp = time(NULL);
     char timestring[50];
@@ -276,6 +277,9 @@ int main(int argc, char*argv[]) {
         else if (*i == "-mode") {
             mode = std::max(0, int(stod(*++i)));
         }
+        else if (*i == "-invert") {
+            invert = true;
+        }
     }
 
     initscr();
@@ -354,7 +358,7 @@ int main(int argc, char*argv[]) {
             frame = (inFrame.isContinuous() ? inFrame : inFrame.clone()).reshape(1, 1); // data copy here
             //frame = std::vector<uchar>(inFrame.begin<uchar>(), inFrame.end<uchar>());
 
-            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode, frameNumber, borderPointCount));
+            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode, frameNumber, borderPointCount, invert));
 
 			frameNumber++;
         }

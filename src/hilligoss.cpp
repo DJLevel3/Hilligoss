@@ -22,13 +22,13 @@ inline double lerp(double a, double b, double t) {
 	return a + ((b - a) * t);
 }
 
-void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve, int mode, int frameNumber, int borderSamples) {
+void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve, int mode, int frameNumber, int borderSamples, bool invert) {
     // Create an RNG device for all the subfunctions
     std::random_device rd;
     std::mt19937 rng(rd());
 
     // Select a subset of pixels from the image
-    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, boost, curve, mode, rng, frameNumber);
+    std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, boost, curve, mode, rng, frameNumber, invert);
 
     // Order the pixels and convert them into samples
     std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, mode, rng, frameNumber);
@@ -75,7 +75,7 @@ void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& des
 }
 
 // Choose <targetCount> pixels from <image> that are greater than <black>, skewing towards <white> with a curve factor of <curve> then boosting everything by <boost>.
-std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, double boost, double curve, int mode, std::mt19937& g, int frameNumber) {
+std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, double boost, double curve, int mode, std::mt19937& g, int frameNumber, bool invert) {
     int pixelCount = 0;
     int x, y, x_temp, y_temp, s;
     double z, v;
@@ -137,14 +137,15 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
 		// if (z < lookup[black] * greed) continue;
 
         // Get the pixel value at the current index and curve it
-        v = lookup[image[candidates[index]]] * greed;
+        unsigned char pixelValue = image[candidates[index]] * (1 - (2 * invert));
+        v = lookup[pixelValue] * greed;
 
         // get X and Y coordinates at the current index
         x = candidates[index] % PIX_CT;
         y = (int)(candidates[index] / PIX_CT) % PIX_CT;
 
         // If the candidate is less than the black value...
-        if (image[candidates[index]] <= black) {
+        if (pixelValue <= black) {
             // Remove it from the list, making sure not to skip a candidate
             quickDelete(candidates, index);
             index--;
