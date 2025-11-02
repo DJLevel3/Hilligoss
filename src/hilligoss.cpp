@@ -246,6 +246,14 @@ void debug(std::string s) {
 // Find an order through which the pixels should be traversed and convert it into 16-bit PCM audio
 std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetCount, int jumpPeriod, int searchDistance, int mode, std::mt19937& g, int frameNumber)
 {
+	if (pixelsOriginal.size() == 0) {
+		std::vector<int16_t> ret;
+		ret.reserve(targetCount * 2);
+		for (int i = 0; i < targetCount * 2; i++) {
+			ret[i] = 0;
+		}
+		return ret;
+	}
     std::vector<long> path;
     path.reserve(pixelsOriginal.size());
 
@@ -362,6 +370,7 @@ std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetC
 
     // This will be returned once it's populated
     std::vector<int16_t> outputFile;
+	outputFile.reserve(targetCount * 2);
 
     // The 16-bit PCM values will be calculated here
     int16_t xShort, yShort;
