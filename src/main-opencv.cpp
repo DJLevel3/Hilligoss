@@ -377,7 +377,9 @@ int main(int argc, char*argv[]) {
                 return 0;
             }
         }
+        int thr = 0;
         for (std::thread& t : threads) {
+            std::cout << thr++ << std::endl;
             t.join();
         }
         for (int t = 0; t < BATCH_SIZE; t++) {

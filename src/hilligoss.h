@@ -31,6 +31,9 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #include <iostream>
 #include <cfloat>
 #include <algorithm>
+#include <cstring>
+#include <chrono>
+#include <thread>
 
 // Convert an 8-bit grayscale image into 16-bit stereo PCM
 //   image: the image to convert, flattened row-by-row
@@ -47,5 +50,5 @@ void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& des
     unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance,
     double boost, double curve, int mode = 0, int frameNumber = 0, int borderSamples = 0, bool invert = false);
 
-std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetCount, int jumpPeriod, int searchDistance, int mode, std::mt19937& g, int frameNumber = 0);
+std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetCount, int jumpPeriod, int searchDistance);
 std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, double boost, double curve, int mode, std::mt19937& g, int frameNumber = 0, bool invert = false);

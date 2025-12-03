@@ -31,7 +31,7 @@ void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& des
     std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, boost, curve, mode, rng, frameNumber, invert);
 
     // Order the pixels and convert them into samples
-    std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, mode, rng, frameNumber);
+    std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance);
 	
 	if (borderSamples > 0) {
 		std::vector<double> border;
@@ -244,7 +244,7 @@ void debug(std::string s) {
 }
 
 // Find an order through which the pixels should be traversed and convert it into 16-bit PCM audio
-std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetCount, int jumpPeriod, int searchDistance, int mode, std::mt19937& g, int frameNumber)
+std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetCount, int jumpPeriod, int searchDistance)
 {
 	if (pixelsOriginal.size() == 0) {
 		std::vector<int16_t> ret;
@@ -254,68 +254,29 @@ std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetC
 		}
 		return ret;
 	}
-    std::vector<long> path;
-    path.reserve(pixelsOriginal.size());
+    short* path = (short*)malloc(targetCount * 2 * sizeof(short));
+    if (path == 0) {
+        return std::vector<int16_t>{0, 0};
+    }
 
     int pathLength = 0;
-	
-    // Create and populate a map of the pixels, where each true value is a pixel in the list
-	std::vector<bool> map(PIX_CT * PIX_CT);
-    int nPix = 0;
-    for (int i = 0; i < pixelsOriginal.size() - 1; i++) {
-        int s = pixelsOriginal.size();
-        int p = pixelsOriginal[i];
-        int p2 = pixelsOriginal[++i];
-		map[p2 * PIX_CT + p] = true;
-        nPix++;
-	}
-
+    int nPix = targetCount;
+    short sD = searchDistance * SHRT_MAX / (PIX_CT / 2);
+    short x;
+    short y;
 
     // While we haven't hit the target count, and while there are still pixels on the map...
     while (pathLength < targetCount && nPix > 0)
     {
-        // Allocate some memory for some pixel vectors so they don't have to expand later
-        std::vector<int> pixels, pixelsTemp;
-        pixelsTemp.reserve(nPix * 2);
-        pixels.reserve(nPix * 2);
-
-        // Get all the pixels currently in the map and put them in a temporary vector
-        for (int x = 0; x < PIX_CT; x++) {
-            for (int y = 0; y < PIX_CT; y++) {
-                if (map[y * PIX_CT + x] == true) {
-                    pixelsTemp.push_back(x);
-                    pixelsTemp.push_back(y);
-                }
-            }
-        }
-		
-        // Create a list of pixel indices, and shuffle it up
-        std::vector<int> pixelIndices(pixelsTemp.size() / 2);
-		for (int i = 0; i < pixelIndices.size(); i++) pixelIndices[i] = i;
-        std::shuffle(pixelIndices.begin(), pixelIndices.end(),g);
-
-        // Use the shuffled indices to shuffle the actual pixels
-        for (int i = 0; i < pixelIndices.size(); i++) {
-            pixels.push_back(pixelsTemp[pixelIndices[i] * 2]);
-            pixels.push_back(pixelsTemp[pixelIndices[i] * 2 + 1]);
-        }
-
-        // If we don't have enough pixels to choose another, we can stop now
-        if (pixels.size() < 2) {
-            break;
-        }
-
-        // Choose a random starting point
-        int startPoint = rand() % (pixels.size() / 2);
-        
         // Add that starting point to the path
-        path.push_back(pixels[startPoint*2]);
-        path.push_back(pixels[startPoint*2+1]);
+        path[pathLength * 2] = (pixelsOriginal[0] - PIX_CT / 2) * SHRT_MAX / (PIX_CT / 2);
+        path[pathLength * 2 + 1] = (pixelsOriginal[1] - PIX_CT / 2) * SHRT_MAX / (PIX_CT / 2);
         pathLength++;
+        nPix--;
 
         // Remove the starting point from the map
-        map[pixels[startPoint * 2 + 1] * PIX_CT + pixels[startPoint * 2]] = false;
-        nPix--;
+        pixelsOriginal[0] = pixelsOriginal[nPix * 2];
+        pixelsOriginal[1] = pixelsOriginal[nPix * 2 + 1];
 
         for (int jumpCounter = 0; jumpCounter < jumpPeriod && pathLength < targetCount; jumpCounter++)
         {
@@ -323,106 +284,55 @@ std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetC
             long closestIndex = -1;
 
             // Closest distance is infinite for now
-            double minDistance = DBL_MAX;
-			
-            // search square centered at current position and extending in each direction by searchDistance
-            for (long x = std::max(0l, path[path.size() - 2] - searchDistance); x < std::min((long)(PIX_CT), path[path.size() - 2] + searchDistance); x++) {
-                for (long y = std::max(0l, path[path.size() - 1] - searchDistance); y < std::min((long)(PIX_CT), path[path.size() - 1] + searchDistance); y++) {
-                    // If there's a pixel on the map here and it's not the current pixel
-                    if ((map[y * PIX_CT + x] == true) && (x != path[path.size() - 2]) && (y != path[path.size() - 1])) {
-                        // Calculate the distance to the current pixel (sqrt(dx^2 + dy^2))
-                         double dist = sqrt(pow(double(path[(path.size() - 2)]) - double(x), 2.0) + pow(double(path[(path.size() - 1)] - y), 2.0));
-                        // If it's a new record for the closest point
-                        if ((dist > 0) && (dist <= minDistance))
-                        {
-                            // Set the closest index and distance to the new record point
-                            closestIndex = (y * PIX_CT) + x;
-                            minDistance = dist;
-                        }
+            float minDistance = USHRT_MAX * 2.f;
+
+            for (int pixel = 0; pixel < nPix; pixel++) {
+                x = pixelsOriginal[pixel * 2];
+                y = pixelsOriginal[pixel * 2 + 1];
+                // If the pixel is within search distance
+                if (fabsf(float(x) - path[pathLength * 2 - 2]) < sD && fabsf(float(y) - path[pathLength * 2 - 1]) < sD) {
+                    // Calculate the distance to the current pixel (sqrt(dx^2 + dy^2))
+                    float dist = sqrtf(powf(float(path[(pathLength * 2 - 2)]) - float(x), 2.0) + powf(float(path[(pathLength * 2 - 1)] - y), 2.0));
+                    // If it's a new record for the closest point
+                    if ((dist > 0) && (dist <= minDistance))
+                    {
+                        // Set the closest index and distance to the new record point
+                        closestIndex = pixel;
+                        minDistance = dist;
                     }
                 }
             }
 
             // If we found a pixel in the search radius
-            if (closestIndex >= 0) 
+            if (closestIndex >= 0)
             {
                 // Add it to the path
-                path.push_back((closestIndex % PIX_CT + PIX_CT) % PIX_CT);
-                path.push_back((long(closestIndex / PIX_CT) % PIX_CT + PIX_CT) % PIX_CT);
+                path[pathLength * 2] = pixelsOriginal[closestIndex * 2];
+                path[pathLength * 2 + 1] = pixelsOriginal[closestIndex * 2 + 1];
                 pathLength++;
 
-                // Remove it from the map and the tally
-                map[closestIndex] = false;
                 nPix--;
+                pixelsOriginal[closestIndex * 2] = pixelsOriginal[nPix * 2];
+                pixelsOriginal[closestIndex * 2 + 1] = pixelsOriginal[nPix * 2 + 1];
             }
             // Otherwise, begin a new stroke
             else
             {
-                break; 
+                break;
             }
         }
     }
-    if (path.size() == 0) {
-        path.push_back(PIX_CT / 2);
-        path.push_back(PIX_CT / 2);
-        pathLength++;
+    if (pathLength == 0) {
+        memset(path, 0, targetCount * 2 * sizeof(short));
+        pathLength = 1;
     }
 
-    // This will be returned once it's populated
-    std::vector<int16_t> outputFile;
-	outputFile.reserve(targetCount * 2);
-
-    // The 16-bit PCM values will be calculated here
-    int16_t xShort, yShort;
-
-    // How many pixels have been written to the actual return vector
-    int pixelsWritten = 0;
-
-    // How much farther we want to draw compared to how far we actually do draw per pixel
-    double ratio = targetCount / (double)pathLength;
-
-    // How far we expect to be through the path right now
-    double expectedProgress = 0;
-
-    for (int i = 0; i < path.size() / 2; i++)
-    {
-        // Convert X and Y to PCM values
-        xShort = (int16_t)(path[i*2] % PIX_CT) * (65536 / PIX_CT) - 32768;
-        yShort = -(int16_t)(path[i*2+1] % PIX_CT) * (65536 / PIX_CT) - 32768;
-
-        // Put them in the PCM stream
-        outputFile.push_back(xShort);
-        outputFile.push_back(yShort);
-        pixelsWritten++;
-
-        // Increase the expected progress by the ratio found earlier
-        expectedProgress += ratio;
-
-        // If we haven't written as many pixels as expected, repeat the current one however much is needed
-        while (pixelsWritten < expectedProgress) {
-            outputFile.push_back(xShort);
-            outputFile.push_back(yShort);
-            pixelsWritten++;
-        }
+    std::vector<int16_t> ret;
+    ret.reserve(pathLength);
+    for (int i = 0; i < pathLength; i++) {
+        ret.push_back(path[i * 2]);
+        ret.push_back(path[i * 2 + 1]);
     }
-
-    // Make 100% sure that there really are the right number of pixels in the target vector
-    int i = 0;
-    while (pixelsWritten < targetCount)
-    {
-        // Convert X and Y to PCM values
-        xShort = (int16_t)(path[i * 2] % PIX_CT) * (65536 / PIX_CT) - 32767;
-        yShort = -(int16_t)(path[i * 2 + 1] % PIX_CT) * (65536 / PIX_CT) - 32767;
-
-        // Put them in the PCM stream
-        outputFile.push_back(xShort);
-        outputFile.push_back(yShort);
-        pixelsWritten++;
-
-        // Increment and wrap i around
-        i = (i + 1) % (path.size() / 2);
-
-    }
-
-    return outputFile;
+    free(path);
+    return ret;
 }
