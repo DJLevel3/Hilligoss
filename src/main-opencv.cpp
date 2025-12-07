@@ -335,11 +335,13 @@ int main(int argc, char*argv[]) {
         else printw("\r%2.1f%c processed - Running frames %d through %d", progress, '%', f, (frameNumber + BATCH_SIZE)/ realLoop );
         for (int t = 0; t < BATCH_SIZE; t++) {
             results[t].clear();
+            results[t].reserve(targetPointCount * 2);
             if (counter == 0) {
                 capture >> inFrame;
 
                 if (inFrame.empty()) {
                     done = true;
+                    BATCH_SIZE = t;
                     break;
                 }
 
@@ -377,9 +379,7 @@ int main(int argc, char*argv[]) {
                 return 0;
             }
         }
-        int thr = 0;
         for (std::thread& t : threads) {
-            std::cout << thr++ << std::endl;
             t.join();
         }
         for (int t = 0; t < BATCH_SIZE; t++) {

@@ -226,6 +226,17 @@ std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targe
 
     // Return the finalized list of chosen candidates' X and Y coordinates.
     s = pixels.size();
+    if (s == 0) {
+        pixels.push_back(0);
+        pixels.push_back(0);
+        s = pixels.size();
+    }
+    int ct = 0;
+    while (s < targetCount * 2) {
+        pixels.push_back(pixels[ct++]);
+        pixels.push_back(pixels[ct++]);
+        s = pixels.size();
+    }
     return pixels;
 }
 
