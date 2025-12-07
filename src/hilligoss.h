@@ -50,5 +50,5 @@ void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& des
     unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance,
     double boost, double curve, int mode = 0, int frameNumber = 0, int borderSamples = 0, bool invert = false);
 
-std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetCount, int jumpPeriod, int searchDistance);
+std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetCount, int jumpPeriod, int searchDistance, std::mt19937& rng );
 std::vector<int> choosePixels(const std::vector<unsigned char>& image, int targetCount, unsigned char black, unsigned char white, double boost, double curve, int mode, std::mt19937& g, int frameNumber = 0, bool invert = false);

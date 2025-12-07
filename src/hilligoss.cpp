@@ -31,7 +31,7 @@ void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& des
     std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, boost, curve, mode, rng, frameNumber, invert);
 
     // Order the pixels and convert them into samples
-    std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance);
+    std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, rng);
 	
 	if (borderSamples > 0) {
 		std::vector<double> border;
@@ -255,7 +255,7 @@ void debug(std::string s) {
 }
 
 // Find an order through which the pixels should be traversed and convert it into 16-bit PCM audio
-std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetCount, int jumpPeriod, int searchDistance)
+std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetCount, int jumpPeriod, int searchDistance, std::mt19937& rng)
 {
 	if (pixelsOriginal.size() == 0) {
 		std::vector<int16_t> ret;
@@ -269,10 +269,21 @@ std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetC
     if (path == 0) {
         return std::vector<int16_t>{0, 0};
     }
+    /*
+    std::vector<int32_t> to_shuffle;
+    to_shuffle.resize(pixelsOriginal.size() >> 1);
+    for (int i = 0; i < pixelsOriginal.size() >> 1; i++) {
+        to_shuffle[i] = (pixelsOriginal[i * 2] & 0xFFFF) + (pixelsOriginal[i * 2 + 1] & 0xFFFF) << 16;
+    }
+    std::shuffle(std::begin(to_shuffle), std::end(to_shuffle), rng);
+    for (int i = 0; i < to_shuffle.size(); i++) {
+        pixelsOriginal[i * 2] = int16_t(to_shuffle[i] & 0xFFFF);
+        pixelsOriginal[i * 2 + 1] = int16_t(to_shuffle[i] >> 16);
+    }*/
 
     int pathLength = 0;
     int nPix = targetCount;
-    short sD = searchDistance * SHRT_MAX / (PIX_CT / 2);
+    short sD = searchDistance * SHRT_MAX / (PIX_CT/2);
     short x;
     short y;
 
@@ -280,8 +291,8 @@ std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetC
     while (pathLength < targetCount && nPix > 0)
     {
         // Add that starting point to the path
-        path[pathLength * 2] = (pixelsOriginal[0] - PIX_CT / 2) * SHRT_MAX / (PIX_CT / 2);
-        path[pathLength * 2 + 1] = (pixelsOriginal[1] - PIX_CT / 2) * SHRT_MAX / (PIX_CT / 2);
+        path[pathLength * 2] = (pixelsOriginal[0] - PIX_CT / 2) * SHRT_MAX / (PIX_CT/2);
+        path[pathLength * 2 + 1] = (pixelsOriginal[1] - PIX_CT / 2) * SHRT_MAX / (PIX_CT/2);
         pathLength++;
         nPix--;
 
@@ -298,8 +309,8 @@ std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetC
             float minDistance = USHRT_MAX * 2.f;
 
             for (int pixel = 0; pixel < nPix; pixel++) {
-                x = pixelsOriginal[pixel * 2];
-                y = pixelsOriginal[pixel * 2 + 1];
+                x = (pixelsOriginal[pixel * 2] - PIX_CT / 2)* SHRT_MAX / (PIX_CT/2);
+                y = (pixelsOriginal[pixel * 2 + 1] - PIX_CT / 2)* SHRT_MAX / (PIX_CT/2);
                 // If the pixel is within search distance
                 if (fabsf(float(x) - path[pathLength * 2 - 2]) < sD && fabsf(float(y) - path[pathLength * 2 - 1]) < sD) {
                     // Calculate the distance to the current pixel (sqrt(dx^2 + dy^2))
@@ -318,8 +329,8 @@ std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetC
             if (closestIndex >= 0)
             {
                 // Add it to the path
-                path[pathLength * 2] = pixelsOriginal[closestIndex * 2];
-                path[pathLength * 2 + 1] = pixelsOriginal[closestIndex * 2 + 1];
+                path[pathLength * 2] = (pixelsOriginal[closestIndex * 2] - PIX_CT / 2) * SHRT_MAX / (PIX_CT/2);
+                path[pathLength * 2 + 1] = (pixelsOriginal[closestIndex * 2 + 1] - PIX_CT / 2) * SHRT_MAX / (PIX_CT/2);
                 pathLength++;
 
                 nPix--;
@@ -342,7 +353,7 @@ std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetC
     ret.reserve(pathLength);
     for (int i = 0; i < pathLength; i++) {
         ret.push_back(path[i * 2]);
-        ret.push_back(path[i * 2 + 1]);
+        ret.push_back(- path[i * 2 + 1] - 1);
     }
     free(path);
     return ret;
