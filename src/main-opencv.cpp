@@ -251,7 +251,7 @@ int main(int argc, char*argv[]) {
 		}
         else if (*i == "-d" || *i == "-distance") {
             searchDistance = int(stod(*++i));
-            if (searchDistance < 1) searchDistance = PIX_CT;
+            if (searchDistance < 1 || searchDistance >= PIX_CT) searchDistance = PIX_CT - 1;
         }
         else if (*i == "-p" || *i == "-preview") {
             showPreview = true;
