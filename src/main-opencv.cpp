@@ -163,7 +163,6 @@ void resizeKeepAspectRatio(const cv::Mat& src, cv::Mat& dst, const cv::Size& dst
 }
 
 int main(int argc, char*argv[]) {
-    auto now = std::chrono::steady_clock::now();
 	// parse args
 	std::vector<std::string> args(argv + 1, argv + argc);
     std::string infname = "input.mp4";
@@ -173,7 +172,7 @@ int main(int argc, char*argv[]) {
     int white_level = 230;
     int jump_timer = 100;
 	double fps = -1;
-    int searchDistance = 30;
+    int searchDistance = 255;
     bool showPreview = false;
     int syncCount = 1;
     int boost = 30;
@@ -183,6 +182,7 @@ int main(int argc, char*argv[]) {
 	double border = 0;
     int mode = 0;
     bool invert = false;
+    bool alert = false;
 
     std::time_t timestamp = time(NULL);
     char timestring[50];
@@ -250,8 +250,7 @@ int main(int argc, char*argv[]) {
 			fps = std::max(0.1, stod(*++i));
 		}
         else if (*i == "-d" || *i == "-distance") {
-            searchDistance = int(stod(*++i));
-            if (searchDistance < 1 || searchDistance >= PIX_CT) searchDistance = PIX_CT - 1;
+            searchDistance = std::max(1, stoi(*++i));
         }
         else if (*i == "-p" || *i == "-preview") {
             showPreview = true;
@@ -281,6 +280,9 @@ int main(int argc, char*argv[]) {
             invert = true;
         }
     }
+
+    if (alert) std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    auto now = std::chrono::steady_clock::now();
 
     initscr();
     cbreak();
@@ -323,6 +325,13 @@ int main(int argc, char*argv[]) {
 
     bool done = false;
 
+#ifdef TIMEIT
+    BATCH_SIZE = 1;
+#endif
+
+    std::random_device rd{};
+    std::mt19937 rng = std::mt19937{rd()};
+
 	int frameNumber = 0;
     int counter = 0;
     while (done == false) {
@@ -360,7 +369,8 @@ int main(int argc, char*argv[]) {
             frame = (inFrame.isContinuous() ? inFrame : inFrame.clone()).reshape(1, 1); // data copy here
             //frame = std::vector<uchar>(inFrame.begin<uchar>(), inFrame.end<uchar>());
 
-            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode, frameNumber, borderPointCount, invert));
+            rng.discard(100);
+            threads.push_back(std::thread(hilligoss, frame, std::ref(results[t]), targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode, frameNumber, borderPointCount, invert, rng));
 
 			frameNumber++;
         }

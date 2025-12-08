@@ -22,17 +22,32 @@ inline double lerp(double a, double b, double t) {
 	return a + ((b - a) * t);
 }
 
-void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve, int mode, int frameNumber, int borderSamples, bool invert) {
-    // Create an RNG device for all the subfunctions
-    std::random_device rd;
-    std::mt19937 rng(rd());
+void hilligoss(const std::vector<unsigned char> image, std::vector<int16_t>& destination, int targetCount, unsigned char blackThreshold, unsigned char whiteThreshold, int jumpPeriod, int searchDistance, double boost, double curve, int mode, int frameNumber, int borderSamples, bool invert, std::mt19937 rng) {
+
+#ifdef TIMEIT
+    auto now1 = std::chrono::steady_clock::now();
+#endif
 
     // Select a subset of pixels from the image
     std::vector<int> pixels = choosePixels(image, targetCount, blackThreshold, whiteThreshold, boost, curve, mode, rng, frameNumber, invert);
 
+#ifdef TIMEIT
+
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - now1).count() * 0.001;
+    std::cout << " choosePixels - " << duration << " milliseconds" << std::endl;
+    auto now2 = std::chrono::steady_clock::now();
+#endif
+
     // Order the pixels and convert them into samples
     std::vector<int16_t> samples = determinePath(pixels, targetCount, jumpPeriod, searchDistance, rng);
-	
+
+#ifdef TIMEIT
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - now2).count() * 0.001;
+    std::cout << "determinePath - " << duration << " milliseconds" << std::endl;
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - now1).count() * 0.001;
+    std::cout << "        total - " << duration << " milliseconds" << std::endl << std::endl;
+#endif
+
 	if (borderSamples > 0) {
 		std::vector<double> border;
 		border.reserve(borderSamples * 2);
@@ -265,38 +280,40 @@ std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetC
 		}
 		return ret;
 	}
-    short* path = (short*)malloc(targetCount * 2 * sizeof(short));
-    if (path == 0) {
-        return std::vector<int16_t>{0, 0};
-    }
-    /*
-    std::vector<int32_t> to_shuffle;
-    to_shuffle.resize(pixelsOriginal.size() >> 1);
-    for (int i = 0; i < pixelsOriginal.size() >> 1; i++) {
-        to_shuffle[i] = (pixelsOriginal[i * 2] & 0xFFFF) + (pixelsOriginal[i * 2 + 1] & 0xFFFF) << 16;
-    }
-    std::shuffle(std::begin(to_shuffle), std::end(to_shuffle), rng);
-    for (int i = 0; i < to_shuffle.size(); i++) {
-        pixelsOriginal[i * 2] = int16_t(to_shuffle[i] & 0xFFFF);
-        pixelsOriginal[i * 2 + 1] = int16_t(to_shuffle[i] >> 16);
-    }*/
+    std::vector<int16_t> path;
+    path.resize(targetCount * 2, 0);
 
     int pathLength = 0;
     int nPix = targetCount;
-    short sD = searchDistance * SHRT_MAX / (PIX_CT/2);
-    short x;
-    short y;
+    long x;
+    long y;
+
+    std::vector<int> indices;
+    indices.resize(pixelsOriginal.size() / 2);
+    for (int i = 0; i < indices.size(); i++) {
+        indices[i] = i;
+    }
+    std::ranges::shuffle(indices, rng);
+    for (int i = 0; i < indices.size(); i++) {
+        pixelsOriginal[indices[i] * 2] = (pixelsOriginal[indices[i] * 2] - PIX_CT / 2) * SHRT_MAX / (PIX_CT);
+        pixelsOriginal[indices[i] * 2 + 1] = -((pixelsOriginal[indices[i] * 2 + 1] - PIX_CT / 2) * SHRT_MAX / (PIX_CT)) - 1;
+    }
+
+    long sD = (searchDistance) * SHRT_MAX / (PIX_CT);
+    sD = (sD * sD) + (sD * sD);
+
+    long dist;
 
     // While we haven't hit the target count, and while there are still pixels on the map...
     while (pathLength < targetCount && nPix > 0)
     {
         // Add that starting point to the path
-        path[pathLength * 2] = (pixelsOriginal[0] - PIX_CT / 2) * SHRT_MAX / (PIX_CT/2);
-        path[pathLength * 2 + 1] = (pixelsOriginal[1] - PIX_CT / 2) * SHRT_MAX / (PIX_CT/2);
+        path[pathLength * 2] = (pixelsOriginal[0]);
+        path[pathLength * 2 + 1] = (pixelsOriginal[1]);
         pathLength++;
-        nPix--;
 
         // Remove the starting point from the map
+        nPix--;
         pixelsOriginal[0] = pixelsOriginal[nPix * 2];
         pixelsOriginal[1] = pixelsOriginal[nPix * 2 + 1];
 
@@ -306,31 +323,29 @@ std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetC
             long closestIndex = -1;
 
             // Closest distance is infinite for now
-            float minDistance = USHRT_MAX * 2.f;
+            long minDistance = LONG_MAX;
 
             for (int pixel = 0; pixel < nPix; pixel++) {
-                x = (pixelsOriginal[pixel * 2] - PIX_CT / 2)* SHRT_MAX / (PIX_CT/2);
-                y = (pixelsOriginal[pixel * 2 + 1] - PIX_CT / 2)* SHRT_MAX / (PIX_CT/2);
-                // If the pixel is within search distance
-                if (fabsf(float(x) - path[pathLength * 2 - 2]) < sD && fabsf(float(y) - path[pathLength * 2 - 1]) < sD) {
-                    // Calculate the distance to the current pixel (sqrt(dx^2 + dy^2))
-                    float dist = sqrtf(powf(float(path[(pathLength * 2 - 2)]) - float(x), 2.0) + powf(float(path[(pathLength * 2 - 1)] - y), 2.0));
-                    // If it's a new record for the closest point
-                    if ((dist > 0) && (dist <= minDistance))
-                    {
-                        // Set the closest index and distance to the new record point
-                        closestIndex = pixel;
-                        minDistance = dist;
-                    }
+                x = (path[(pathLength * 2 - 2)]);
+                y = (path[(pathLength * 2 - 1)]);
+                // Calculate the distance to the current pixel (sqrt(dx^2 + dy^2))
+                dist = (pixelsOriginal[pixel * 2] - x) * (pixelsOriginal[pixel * 2] - x)
+                    + (pixelsOriginal[pixel * 2 + 1] - y) * (pixelsOriginal[pixel * 2 + 1] - y);
+                // If it's a new record for the closest point
+                if (dist < sD && ((dist > 0) && (dist <= minDistance)))
+                {
+                    // Set the closest index and distance to the new record point
+                    closestIndex = pixel;
+                    minDistance = dist;
                 }
             }
 
-            // If we found a pixel in the search radius
+            // If we found a pixel
             if (closestIndex >= 0)
             {
                 // Add it to the path
-                path[pathLength * 2] = (pixelsOriginal[closestIndex * 2] - PIX_CT / 2) * SHRT_MAX / (PIX_CT/2);
-                path[pathLength * 2 + 1] = (pixelsOriginal[closestIndex * 2 + 1] - PIX_CT / 2) * SHRT_MAX / (PIX_CT/2);
+                path[pathLength * 2] = (pixelsOriginal[closestIndex * 2]);
+                path[pathLength * 2 + 1] = (pixelsOriginal[closestIndex * 2 + 1]);
                 pathLength++;
 
                 nPix--;
@@ -344,17 +359,7 @@ std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetC
             }
         }
     }
-    if (pathLength == 0) {
-        memset(path, 0, targetCount * 2 * sizeof(short));
-        pathLength = 1;
-    }
-
-    std::vector<int16_t> ret;
-    ret.reserve(pathLength);
-    for (int i = 0; i < pathLength; i++) {
-        ret.push_back(path[i * 2]);
-        ret.push_back(- path[i * 2 + 1] - 1);
-    }
-    free(path);
-    return ret;
+    
+    for (int i = 0; i < path.size(); i++) path[i] *= 2;
+    return path;
 }
