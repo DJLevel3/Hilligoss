@@ -293,7 +293,7 @@ std::vector<int16_t> determinePath(std::vector<int>& pixelsOriginal, int targetC
     for (int i = 0; i < indices.size(); i++) {
         indices[i] = i;
     }
-    std::ranges::shuffle(indices, rng);
+    std::shuffle(indices.begin(), indices.end(), rng);
     for (int i = 0; i < indices.size(); i++) {
         pixelsOriginal[indices[i] * 2] = (pixelsOriginal[indices[i] * 2] - PIX_CT / 2) * SHRT_MAX / (PIX_CT);
         pixelsOriginal[indices[i] * 2 + 1] = -((pixelsOriginal[indices[i] * 2 + 1] - PIX_CT / 2) * SHRT_MAX / (PIX_CT)) - 1;

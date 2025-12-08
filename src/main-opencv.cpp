@@ -185,8 +185,8 @@ int main(int argc, char*argv[]) {
     bool alert = false;
 
     std::time_t timestamp = time(NULL);
-    char timestring[50];
-    strftime(timestring, 50, "hilligoss-%m%d%y-%H%M%S.wav", localtime(&timestamp));
+    char timestring[256];
+    strftime(timestring, 255, "hilligoss-%m%d%y-%H%M%S.wav", localtime(&timestamp));
     std::string outfname = timestring;
 
     // Loop over command-line args

@@ -150,8 +150,13 @@ int main(int argc, char* argv[]) {
     // Create the vector of samples that Hilligoss will populate
     std::vector<int16_t> pcm;
 
+    int t = (static_cast<long int> (time(NULL))) % 65536;
+    std::random_device rd{};
+    std::mt19937 rng = std::mt19937{ rd() };
+    rng.discard(t);
+
     // Run Hilligoss!
-    hilligoss(image, pcm, targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode, 0, 0, false);
+    hilligoss(image, pcm, targetPointCount, black_level, white_level, jump_timer, searchDistance, boost, curve, mode, 0, 0, false, rng);
 
     // Generate the output file name and open it
     std::string outputFileName = inputFileName.substr(0, inputFileName.size() - 4).append(".pcm");
